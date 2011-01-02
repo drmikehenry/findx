@@ -1,0 +1,60 @@
+Grammar
+=======================================
+
+::
+
+  command-line ::=  findx-arg-list
+
+  findx-arg-list    findx-arg* [ 
+                    ":" xargs-arg-list 
+                    | "]" xargs-arg-list 
+                    | "::" raw-xarg+
+                    | "]]" raw-xarg* ]
+
+  xargs-arg-list    xarg* [ "[" findx-arg-list ]
+
+  raw-xarg ::=      <any word>
+  
+  xarg ::=          <anything except "[">
+
+  findx-arg ::=     pre-option
+                    | dir
+                    | "-e" term
+                    | "-i" term
+                    | expression
+                    | "["
+
+  dir ::=           <word not starting with "-", without meta-chars, and
+                      not a reserved word>
+
+  meta-chars ::=    "*" | "?" | "[" | "]" | "{" | "}" | "|"
+
+  expression ::=    term [ [binary-op] term ]*
+
+  term ::=          test
+                    | action
+                    | glob
+                    | "(" expression ")"
+                    | unary-op term
+
+  test ::=          option-list
+
+  action ::=        option-list
+
+  pre-option ::=    option-list
+
+  option-list ::=     option0
+                    | option1 param
+                    | option2 param param
+                    | option-var param* (";" | "+")
+
+  option-0 ::=      hyphen-word
+  option-1 ::=      hyphen-word
+  option-2 ::=      hyphen-word
+  option-var ::=    hyphen-word
+
+  hyphen-word ::=   "-" (hyphen | underscore | letter | number)*
+
+  param ::=         <any word>
+
+  glob ::=          <word with meta-chars>
