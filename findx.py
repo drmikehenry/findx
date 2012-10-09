@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__VERSION__ = '0.8.4'
+__VERSION__ = '0.8.5'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -266,6 +266,7 @@ class Findx(object):
         .git
         .bzr
         .hg
+        .undo
         build
         *export
         bak
