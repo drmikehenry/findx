@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__VERSION__ = '0.8.5'
+__VERSION__ = '0.8.6'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -271,7 +271,7 @@ class Findx(object):
         *export
         bak
         *.swp
-        *.[oad]
+        *.[oa]
         *.so
         *.ds
         *.os
