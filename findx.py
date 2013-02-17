@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__VERSION__ = '0.8.6'
+__VERSION__ = '0.9.0'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -261,7 +261,7 @@ class Findx(object):
 
     META_PAIRS = "[]{}"
 
-    STANDARD_EXCLUDE_GLOB = "|".join("""
+    STDX_DIR_GLOB = "|".join("""
         .svn
         .git
         .bzr
@@ -270,8 +270,14 @@ class Findx(object):
         build
         *export
         bak
-        *.swp
-        *.[oa]
+        *.egg-info
+        *.egg
+        """.split())
+
+    STDX_FILE_GLOB = "|".join("""
+        .*.sw?
+        *.o
+        *.a
         *.so
         *.ds
         *.os
@@ -291,8 +297,6 @@ class Findx(object):
         *.jpg
         *.png
         *.pdf
-        *.egg-info
-        *.egg
         tags
         """.split())
 
@@ -557,16 +561,16 @@ class Findx(object):
         elif arg == "-root":
             self.dirs.append(self.popArg())
         elif arg == "-stdx":
-            self.pushArgList(["-x", "-iname", self.STANDARD_EXCLUDE_GLOB])
+            self.pushArgList(["-x", "(", 
+                "-type", "d", "-iname", self.STDX_DIR_GLOB,
+                "-o",
+                "-not", "-type", "d", "-iname", self.STDX_FILE_GLOB,
+                ")"])
         elif arg == "-ffx":
             self.pushArgList(["-stdx", "-L", "-type", "f"])
         elif arg == "-ffg":
             self.pushArgList(["-ffx", ":", "grep", "-H", "--color=auto",
                 "[", ":"])
-        # @todo Consider perl options:
-        #   
-        #   -ffp  ==> -ffx : perl -pe
-        #   -ffn  ==> -ffx : perl -ne
         elif arg in ["-e", "-x"]:
             self.parseIncludeExclude(self.excludes)
         elif arg == "-i":
