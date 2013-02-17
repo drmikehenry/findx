@@ -74,7 +74,7 @@ OPTIONS
   ::                    permanent XARGS MODE; require subsequent xarg
   [                     switch to FINDX MODE from FINDX MODE or XARGS MODE
   ]                     switch to XARGS MODE
-  ]]                    switch to XARGS MODE; require subsequent xarg
+  ]]                    switch to XARGS MODE permanently
 
 Note: FINDX MODE is active at start.  The '[' option does not necessitate ']'.
 A bare '[' may not be used as an XARG unless XARGS MODE has been made 
