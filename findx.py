@@ -44,7 +44,7 @@ GLOB        An extended-syntax filename glob reducing to one or more logically
             -name one|two           ( -name one -o -name two )
             -name one,two           ( -name one -o -name two )
             -name *.{c,cpp}         ( -name *.c -o -name *.cpp )
-            -name quoted[,]comma    -name quoted[,]comma
+            -name quoted[,]comma    -name quoted,comma
 
             Extended GLOBs are recognized after the following 'find' tests:
             -ilname -iname -ipath -wholename -lname -name -path -wholename
