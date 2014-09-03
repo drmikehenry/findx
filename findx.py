@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__VERSION__ = '0.9.0'
+__VERSION__ = '0.9.1'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -31,7 +31,7 @@ METAGLOB    A GLOB containing one or more METACHARACTERS.
 
 XARG        Appended to XARGLIST for second 'xargs' stage of pipeline.
             If XARGLIST is empty, the 'xargs' stage is not used.  When xargs
-            are present, the 'find' action '-print0' is used in combination 
+            are present, the 'find' action '-print0' is used in combination
             with the 'xargs' option '-0'.  'xargs' is always run with the
             option '--no-run-if-empty' to prevent execution without filenames.
 
@@ -77,7 +77,7 @@ OPTIONS
   ]]                    switch to XARGS MODE permanently
 
 Note: FINDX MODE is active at start.  The '[' option does not necessitate ']'.
-A bare '[' may not be used as an XARG unless XARGS MODE has been made 
+A bare '[' may not be used as an XARG unless XARGS MODE has been made
 permanent via '::' or ']]'.
 
 EXCLUSIONS, INCLUSIONS
@@ -107,7 +107,7 @@ STANDARD EXCLUSIONS
   (Use '-show' to see the list.)
 
 STANDARD ACTION
-  If EXPRESSION contains no 'find' action (e.g., '-print', '-print0', 
+  If EXPRESSION contains no 'find' action (e.g., '-print', '-print0',
   '-delete', ...), a standard action will be appended to EXPRESSION.  The
   standard action is '-print0' when XARGS are present, and '-print' otherwise.
 
@@ -306,6 +306,7 @@ class Findx(object):
         self.excludes = []
         self.includes = []
         self.sawAction = False
+        self.sawDir = False
         self.sawPrint = False
 
         self.expression = []
@@ -559,9 +560,10 @@ class Findx(object):
         elif arg == "-show":
             self.show = True
         elif arg == "-root":
+            self.sawDir = True
             self.dirs.append(self.popArg())
         elif arg == "-stdx":
-            self.pushArgList(["-x", "(", 
+            self.pushArgList(["-x", "(",
                 "-type", "d", "-iname", self.STDX_DIR_GLOB,
                 "-o",
                 "-not", "-type", "d", "-iname", self.STDX_FILE_GLOB,
@@ -584,6 +586,7 @@ class Findx(object):
             self.pushArg(arg)
             self.preOptions.extend(self.getOptionList())
         elif self.matchesDir(arg):
+            self.sawDir = True
             self.dirs.append(arg)
         else:
             self.pushArg(arg)
@@ -618,6 +621,9 @@ class Findx(object):
 
         if self.sawPrint and self.xargs:
             raise PrintWithXargsError()
+
+        if not self.sawDir:
+            self.dirs.append(".")
 
         self.findPipeArgs = ["find"] + self.preOptions + self.dirs
         if self.excludes:
