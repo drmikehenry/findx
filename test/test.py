@@ -41,23 +41,23 @@ def testGetOptionListUnderflow():
 def testSimpleCmd():
     f = findx.Findx()
     f.parseCommandLine("-type f -a -print0".split())
-    assert f.expression == "-type f -a -print0".split()
+    assert f.expression == "( -type f -a -print0 )".split()
 
 def testGlob():
     f = findx.Findx()
     f.parseCommandLine("*.c".split())
-    assert f.expression == "-name *.c".split()
+    assert f.expression == "( -name *.c )".split()
 
 def testExclude():
     f = findx.Findx()
     f.parseCommandLine("-e -type f -name *.exe".split())
-    assert f.expression == "-name *.exe".split()
+    assert f.expression == "( -name *.exe )".split()
     assert f.excludes == "-type f".split()
 
 def testExclude2():
     f = findx.Findx()
     f.parseCommandLine("-print -e ( -type f -name *.exe ) -print".split())
-    assert f.expression == "-print -print".split()
+    assert f.expression == "( -print -print )".split()
     assert f.excludes == "( -type f -name *.exe )".split()
 
 def testDistributeOption():
