@@ -38,6 +38,24 @@ def testGetOptionListUnderflow():
     f.args = ['-printf']
     optionList = f.getOptionList()
 
+def testNoDirs():
+    f = findx.Findx()
+    f.parseCommandLine("".split())
+    assert f.expression == "".split()
+    assert f.dirs == ".".split()
+
+def testOneDir():
+    f = findx.Findx()
+    f.parseCommandLine("someDir".split())
+    assert f.expression == "".split()
+    assert f.dirs == "someDir".split()
+
+def testRootDir():
+    f = findx.Findx()
+    f.parseCommandLine("-root someRoot".split())
+    assert f.expression == "".split()
+    assert f.dirs == "someRoot".split()
+
 def testSimpleCmd():
     f = findx.Findx()
     f.parseCommandLine("-type f -a -print0".split())
@@ -115,5 +133,3 @@ def testSplitGlob():
     assert f.splitGlob("a{b,c[}]d") == ["a{b", "c[}]d"]
     assert f.splitGlob("a{b,c{d,e}f}g") == ["abg", "acdfg", "acefg"]
     assert f.splitGlob("a{b{c|d}e}f") == ["a{bce}f", "a{bde}f"]
-
-

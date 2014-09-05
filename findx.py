@@ -306,7 +306,6 @@ class Findx(object):
         self.excludes = []
         self.includes = []
         self.sawAction = False
-        self.sawDir = False
         self.sawPrint = False
 
         self.expression = []
@@ -560,7 +559,6 @@ class Findx(object):
         elif arg == "-show":
             self.show = True
         elif arg == "-root":
-            self.sawDir = True
             self.dirs.append(self.popArg())
         elif arg == "-stdx":
             self.pushArgList(["-x", "(",
@@ -586,7 +584,6 @@ class Findx(object):
             self.pushArg(arg)
             self.preOptions.extend(self.getOptionList())
         elif self.matchesDir(arg):
-            self.sawDir = True
             self.dirs.append(arg)
         else:
             self.pushArg(arg)
@@ -622,7 +619,7 @@ class Findx(object):
         if self.sawPrint and self.xargs:
             raise PrintWithXargsError()
 
-        if not self.sawDir:
+        if not self.dirs:
             self.dirs.append(".")
 
         self.findPipeArgs = ["find"] + self.preOptions + self.dirs
