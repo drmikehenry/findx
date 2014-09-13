@@ -56,6 +56,20 @@ def testRootDir():
     assert f.expression == "".split()
     assert f.dirs == "someRoot".split()
 
+def testLatePath():
+    f = findx.Findx()
+    f.parseCommandLine("-print somePath anotherPath".split())
+    assert f.dirs == "somePath anotherPath".split()
+    assert f.expression == "( -print )".split()
+
+def testPrePostPathOptions():
+    f = findx.Findx()
+    f.parseCommandLine("-print somePath -L anotherPath -depth".split())
+    assert f.prePathOptions == "-L".split()
+    assert f.dirs == "somePath anotherPath".split()
+    assert f.postPathOptions == "-depth".split()
+    assert f.expression == "( -print )".split()
+
 def testSimpleCmd():
     f = findx.Findx()
     f.parseCommandLine("-type f -a -print0".split())

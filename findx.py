@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__VERSION__ = '0.9.1'
+__VERSION__ = '0.9.2'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -189,19 +189,38 @@ class Findx(object):
     OPTIONS_2 = []
     OPTIONS_VAR = []
 
-    PRE_OPTIONS_0 = """
-        --help --version -H -L -P -d -depth -help -ignore_readdir_race -mount
-        -noignore_readdir_race -noleaf -nowarn -version -warn -xdev
+    # PRE_PATH_OPTIONS must come before any paths.
+    PRE_PATH_OPTIONS_0 = """
+        -H -L -P -O0 -O1 -O2 -O3
         """.split()
-    OPTIONS_0.extend(PRE_OPTIONS_0)
+    OPTIONS_0.extend(PRE_PATH_OPTIONS_0)
 
-    PRE_OPTIONS_1 = """
-        -maxdepth -mindepth -regextype
+    PRE_PATH_OPTIONS_1 = """
+        -D
         """.split()
-    OPTIONS_1.extend(PRE_OPTIONS_1)
+    OPTIONS_1.extend(PRE_PATH_OPTIONS_1)
 
-    PRE_OPTIONS = PRE_OPTIONS_0 + PRE_OPTIONS_1
+    PRE_PATH_OPTIONS = PRE_PATH_OPTIONS_0 + PRE_PATH_OPTIONS_1
 
+    # POST_PATH_OPTIONS must come immediately after any paths.
+    POST_PATH_OPTIONS_0 = """
+        -d -depth --help -help -ignore_readdir_race -mount
+        -noignore_readdir_race -noleaf -nowarn --version --version -warn
+        -xautofs -xdev
+        """.split()
+    OPTIONS_0.extend(POST_PATH_OPTIONS_0)
+
+    POST_PATH_OPTIONS_1 = """
+        -maxdepth -mindepth
+        """.split()
+    OPTIONS_1.extend(POST_PATH_OPTIONS_1)
+
+    POST_PATH_OPTIONS = POST_PATH_OPTIONS_0 + POST_PATH_OPTIONS_1
+
+    # Options that go before the expression.
+    PRE_EXPR_OPTIONS = PRE_PATH_OPTIONS + POST_PATH_OPTIONS
+
+    # Action options.
     ACTIONS_VAR = """
         -exec -execdir -ok -okdir
         """.split()
@@ -222,18 +241,22 @@ class Findx(object):
         """.split()
     OPTIONS_2.extend(ACTIONS_2)
 
-    ACTIONS = ACTIONS_0 + ACTIONS_1 + ACTIONS_2
+    ACTIONS = ACTIONS_VAR + ACTIONS_0 + ACTIONS_1 + ACTIONS_2
 
+    # Test options.
     TESTS_0 = """
-        -daystart -empty -false -follow -nogroup -nouser -prune -true
+        -daystart -empty -executable -false -follow -nogroup -nouser -prune
+        -readable -true -writable
         """.split()
     OPTIONS_0.extend(TESTS_0)
 
     TESTS_1 = """
-        -amin -anewer -atime -cmin -cnewer -ctime -fstype -gid -group -inum
-        -iregex -links -mmin -mtime -newer -perm -regex -samefile -size
-        -type -uid -used -user -xtype
+        -amin -anewer -atime -cmin -cnewer -context -ctime -fstype -gid -group
+        -inum -iregex -links -mmin -mtime -newer -perm -regex -regextype
+        -samefile -size -type -uid -used -user -xtype
         """.split()
+    refTypes = "aBcmt"
+    TESTS_1.extend(["-newer%s%s" % (x, y) for x in refTypes for y in refTypes])
     OPTIONS_1.extend(TESTS_1)
 
     TESTS_WITH_GLOB = """
@@ -243,6 +266,7 @@ class Findx(object):
 
     TESTS = TESTS_0 + TESTS_1 + TESTS_WITH_GLOB
 
+    # All possible options.
     OPTIONS = OPTIONS_0 + OPTIONS_1 + OPTIONS_2 + OPTIONS_VAR
 
     UNARY_OPERATORS = """
@@ -301,7 +325,8 @@ class Findx(object):
         """.split())
 
     def __init__(self):
-        self.preOptions = []
+        self.prePathOptions = []
+        self.postPathOptions = []
         self.dirs = []
         self.excludes = []
         self.includes = []
@@ -501,6 +526,8 @@ class Findx(object):
         elif arg in self.UNARY_OPERATORS:
             term = [self.popArg()]
             term.extend(self.getTerm())
+        elif arg in self.PRE_EXPR_OPTIONS:
+            term = []
         elif arg in self.OPTIONS:
             term = self.getOptionList()
         elif self.hasMeta(arg):
@@ -580,9 +607,12 @@ class Findx(object):
                 self.excludes = []
             else:
                 self.parseIncludeExclude(self.includes)
-        elif arg in self.PRE_OPTIONS:
+        elif arg in self.PRE_PATH_OPTIONS:
             self.pushArg(arg)
-            self.preOptions.extend(self.getOptionList())
+            self.prePathOptions.extend(self.getOptionList())
+        elif arg in self.POST_PATH_OPTIONS:
+            self.pushArg(arg)
+            self.postPathOptions.extend(self.getOptionList())
         elif self.matchesDir(arg):
             self.dirs.append(arg)
         else:
@@ -622,7 +652,11 @@ class Findx(object):
         if not self.dirs:
             self.dirs.append(".")
 
-        self.findPipeArgs = ["find"] + self.preOptions + self.dirs
+        self.findPipeArgs = (
+                ["find"] +
+                self.prePathOptions +
+                self.dirs +
+                self.postPathOptions)
         if self.excludes:
             self.findPipeArgs.extend(["("] + self.excludes + [")"])
             if self.includes:
