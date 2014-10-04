@@ -30,6 +30,12 @@ Install ``nose``, then run the tests via::
 History
 -------
 
+Version 0.9.3
+^^^^^^^^^^^^^
+
+- Only use ``--no-run-if-empty`` if we have GNU xargs.  BSD xargs does not
+  support the option, but implements the behavior by default.
+
 Version 0.9.2
 ^^^^^^^^^^^^^
 

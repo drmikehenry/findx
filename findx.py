@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__VERSION__ = '0.9.2'
+__VERSION__ = '0.9.3'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -33,7 +33,9 @@ XARG        Appended to XARGLIST for second 'xargs' stage of pipeline.
             If XARGLIST is empty, the 'xargs' stage is not used.  When xargs
             are present, the 'find' action '-print0' is used in combination
             with the 'xargs' option '-0'.  'xargs' is always run with the
-            option '--no-run-if-empty' to prevent execution without filenames.
+            option '--no-run-if-empty' to prevent execution without filenames,
+            if GNU xargs is detected.  BSD xargs implements this behavior by
+            default.
 
 GLOB        An extended-syntax filename glob reducing to one or more logically
             OR'ed 'find'-style globs containing '*', '?', and '[]'.  OR'ing
@@ -158,7 +160,7 @@ EXAMPLES
 import os
 import sys
 import re
-from subprocess import Popen, STDOUT, PIPE
+from subprocess import Popen, STDOUT, PIPE, check_output, CalledProcessError
 
 class FindxError(Exception):
     def __str__(self):
@@ -343,6 +345,21 @@ class Findx(object):
         self.show = False
         self.showHelp = False
         self.showVersion = False
+
+        self.checkXargs()
+
+    def checkXargs(self):
+        try:
+            output = check_output(['xargs', '--version'], stderr=STDOUT)
+
+            # If --version is accepted, we probably already know in GNU grep,
+            # but let's check and make sure.
+            if 'GNU' in output:
+                self.isGnuXargs = True
+            else:
+                self.isGnuXargs = False
+        except CalledProcessError:
+            self.isGnuXargs = False
 
     def hasMeta(self, s):
         for c in self.META_CHARS:
@@ -673,7 +690,9 @@ class Findx(object):
             elif self.excludes:
                 self.findPipeArgs.append("-print")
         if self.xargs:
-            self.xargsPipeArgs = ["xargs", "-0", "--no-run-if-empty"]
+            self.xargsPipeArgs = ["xargs", "-0"]
+            if self.isGnuXargs:
+                sys.xargsPipeArgs.append("--no-run-if-empty")
             self.xargsPipeArgs.extend(self.xargs)
         else:
             self.xargsPipeArgs = []
