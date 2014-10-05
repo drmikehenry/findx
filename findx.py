@@ -692,7 +692,7 @@ class Findx(object):
         if self.xargs:
             self.xargsPipeArgs = ["xargs", "-0"]
             if self.isGnuXargs:
-                sys.xargsPipeArgs.append("--no-run-if-empty")
+                self.xargsPipeArgs.append("--no-run-if-empty")
             self.xargsPipeArgs.extend(self.xargs)
         else:
             self.xargsPipeArgs = []
