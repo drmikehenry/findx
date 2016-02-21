@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
-__VERSION__ = '0.9.3'
+__VERSION__ = '0.9.4'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -295,6 +295,7 @@ class Findx(object):
         .undo
         build
         *export
+        pkgexp
         bak
         *.egg-info
         *.egg
