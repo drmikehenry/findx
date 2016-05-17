@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-__VERSION__ = '0.9.4'
+__VERSION__ = '0.9.5'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -160,6 +160,7 @@ EXAMPLES
 import os
 import sys
 import re
+import distutils.spawn
 from subprocess import Popen, STDOUT, PIPE, check_output, CalledProcessError
 
 class FindxError(Exception):
@@ -184,6 +185,14 @@ class InvalidDirectoryError(FindxError):
 
 class PrintWithXargsError(FindxError):
     msg = "Error: Cannot mix '-print' with XARGS"
+
+class ExecutableNotFoundError(FindxError):
+    msg = "Error: Executable not found"
+
+def mustFindExecutable(name):
+    executableAbsPath = distutils.spawn.find_executable(name)
+    if executableAbsPath is None:
+        raise ExecutableNotFoundError(name)
 
 class Findx(object):
     OPTIONS_0 = []
@@ -712,13 +721,17 @@ class Findx(object):
             for d in self.dirs:
                 if not os.path.isdir(d):
                     raise InvalidDirectoryError(d)
+            findAbsPath = mustFindExecutable(self.findPipeArgs[0])
             if self.xargsPipeArgs:
-                findProc = Popen(self.findPipeArgs, stdout=PIPE)
-                xargsProc = Popen(self.xargsPipeArgs, stdin=findProc.stdout)
+                xargsAbsPath = mustFindExecutable(self.xargsPipeArgs[0])
+                findProc = Popen(self.findPipeArgs, stdout=PIPE,
+                                 executable=findAbsPath)
+                xargsProc = Popen(self.xargsPipeArgs, stdin=findProc.stdout,
+                                 executable=xargsAbsPath)
                 findProc.wait()
                 xargsProc.wait()
             else:
-                findProc = Popen(self.findPipeArgs)
+                findProc = Popen(self.findPipeArgs, executable=findAbsPath)
                 findProc.wait()
 
     def help(self):

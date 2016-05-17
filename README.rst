@@ -30,6 +30,13 @@ Install ``nose``, then run the tests via::
 History
 -------
 
+Version 0.9.4
+^^^^^^^^^^^^^
+
+- Use ``distutils.spawn.find_executable`` to force searching of ``PATH`` on
+  windows using Git-bash; otherwise, ``find`` will not be found when the Python
+  interpreter is unaware of the Git-bash environment.
+
 Version 0.9.3
 ^^^^^^^^^^^^^
 
