@@ -1,6 +1,12 @@
 #!/usr/bin/env python2
 
-__VERSION__ = '0.9.6'
+import os
+import sys
+import re
+import distutils.spawn
+from subprocess import Popen, STDOUT, PIPE, check_output, CalledProcessError
+
+__version__ = '0.9.6'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -156,12 +162,6 @@ EXAMPLES
   ffx | while read i; do Something; done
 
 """
-
-import os
-import sys
-import re
-import distutils.spawn
-from subprocess import Popen, STDOUT, PIPE, check_output, CalledProcessError
 
 class FindxError(Exception):
     def __str__(self):
@@ -712,7 +712,7 @@ class Findx(object):
         if self.showHelp:
             self.help()
         elif self.showVersion:
-            print 'findx version', __VERSION__
+            print 'findx version', __version__
         elif self.show:
             s = " ".join(self.findPipeArgs)
             if self.xargsPipeArgs:

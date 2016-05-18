@@ -4,21 +4,13 @@ findx - an extended ``find`` command.
 Installation
 ------------
 
-Package can be installed via ``easy_install`` or ``pip``.
+From PyPI, installation is the usual::
 
-* Create the binary distribution::
+  pip install findx
 
-    python setup.py bdist
+From the source tree, install via::
 
-* Install via ``pip``::
-
-    pip install .
-
-or
-
-* Install via ``easy_install``::
-
-    easy_install .
+  python setup.py install
 
 Running the tests
 -----------------
@@ -35,3 +27,9 @@ Changes
 -------
 
 See CHANGES.rst for a history of changes.
+
+License
+-------
+
+``findx`` is distributed under the terms of the MIT license; see LICENSE.rst
+for details.
