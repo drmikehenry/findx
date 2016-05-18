@@ -163,7 +163,9 @@ EXAMPLES
 
 """
 
+
 class FindxError(Exception):
+
     def __str__(self):
         try:
             msg = self.msg
@@ -171,29 +173,37 @@ class FindxError(Exception):
             msg = self.__class__.__name__
         return msg + ' ' + ', '.join(map(repr, self.args))
 
+
 class MissingArgumentError(FindxError):
     msg = 'Error: Missing argument'
+
 
 class MissingXargError(FindxError):
     msg = 'Error: Missing required xarg'
 
+
 class InvalidOptionError(FindxError):
     msg = 'Error: Invalid option'
+
 
 class InvalidDirectoryError(FindxError):
     msg = 'Error: Invalid directory'
 
+
 class PrintWithXargsError(FindxError):
     msg = """Error: Cannot mix '-print' with XARGS"""
 
+
 class ExecutableNotFoundError(FindxError):
     msg = 'Error: Executable not found'
+
 
 def mustFindExecutable(name):
     executableAbsPath = distutils.spawn.find_executable(name)
     if executableAbsPath is None:
         raise ExecutableNotFoundError(name)
     return executableAbsPath
+
 
 class Findx(object):
     OPTIONS_0 = []
@@ -432,7 +442,7 @@ class Findx(object):
                 hitString = h
         return hitPos, hitString
 
-    def findBracedRange(self, s, start = 0):
+    def findBracedRange(self, s, start=0):
         """Return range (start, end) inside outermost braces."""
 
         cleanStr = self.launderCharClass(s)
@@ -616,16 +626,14 @@ class Findx(object):
         elif arg == '-root':
             self.dirs.append(self.popArg())
         elif arg == '-stdx':
-            self.pushArgList(['-x', '(',
-                '-type', 'd', '-iname', self.STDX_DIR_GLOB,
-                '-o',
-                '-not', '-type', 'd', '-iname', self.STDX_FILE_GLOB,
-                ')'])
+            self.pushArgList(
+                ['-x', '(', '-type', 'd', '-iname', self.STDX_DIR_GLOB, '-o',
+                 '-not', '-type', 'd', '-iname', self.STDX_FILE_GLOB, ')'])
         elif arg == '-ffx':
             self.pushArgList(['-stdx', '-L', '-type', 'f'])
         elif arg == '-ffg':
             self.pushArgList(['-ffx', ':', 'grep', '-H', '--color=auto',
-                '[', ':'])
+                              '[', ':'])
         elif arg in ['-e', '-x']:
             self.parseIncludeExclude(self.excludes)
         elif arg == '-i':
@@ -681,10 +689,10 @@ class Findx(object):
             self.dirs.append('.')
 
         self.findPipeArgs = (
-                ['find'] +
-                self.prePathOptions +
-                self.dirs +
-                self.postPathOptions)
+            ['find'] +
+            self.prePathOptions +
+            self.dirs +
+            self.postPathOptions)
         if self.excludes:
             self.findPipeArgs.extend(['('] + self.excludes + [')'])
             if self.includes:
@@ -728,7 +736,7 @@ class Findx(object):
                 findProc = Popen(self.findPipeArgs, stdout=PIPE,
                                  executable=findAbsPath)
                 xargsProc = Popen(self.xargsPipeArgs, stdin=findProc.stdout,
-                                 executable=xargsAbsPath)
+                                  executable=xargsAbsPath)
                 findProc.wait()
                 xargsProc.wait()
             else:
@@ -738,19 +746,22 @@ class Findx(object):
     def help(self):
         print HELP_TEXT
 
+
 def main():
     f = Findx()
     try:
         f.parseCommandLine(sys.argv[1:])
         f.run()
-    except FindxError, e:
+    except FindxError as e:
         print e
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         print '<break>'
+
 
 def ffx():
     sys.argv.insert(1, '-ffx')
     main()
+
 
 def ffg():
     sys.argv.insert(1, '-ffg')
