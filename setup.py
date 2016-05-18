@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 import os
 
-NAME = "findx"
+NAME = 'findx'
 
 
 def open_file(name):
@@ -34,7 +34,7 @@ setup(
     url='https://github.com/drmikehenry/findx',
     author='Michael Henry',
     author_email='drmikehenry@drmikehenry.com',
-    license = 'MIT',
+    license='MIT',
     zip_safe=True,
     classifiers=[
         'Development Status :: 4 - Beta',

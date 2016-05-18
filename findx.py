@@ -75,9 +75,9 @@ OPTIONS
                         by including everything via '-i *')
   -stdx                 setup standard exclusions
   -ffx                  find files with standard exclusions, following
-                        symlinks; shortcut for "findx -stdx -type f -L"
+                        symlinks; shortcut for 'findx -stdx -type f -L'
   -ffg                  grep through files; shortcut for
-                        "findx -ffx : grep -H --color=auto [ :"
+                        'findx -ffx : grep -H --color=auto [ :'
   :                     switch to XARGS MODE; require subsequent xarg
   ::                    permanent XARGS MODE; require subsequent xarg
   [                     switch to FINDX MODE from FINDX MODE or XARGS MODE
@@ -169,25 +169,25 @@ class FindxError(Exception):
             msg = self.msg
         except AttributeError:
             msg = self.__class__.__name__
-        return msg + " " + ", ".join(map(repr, self.args))
+        return msg + ' ' + ', '.join(map(repr, self.args))
 
 class MissingArgumentError(FindxError):
-    msg = "Error: Missing argument"
+    msg = 'Error: Missing argument'
 
 class MissingXargError(FindxError):
-    msg = "Error: Missing required xarg"
+    msg = 'Error: Missing required xarg'
 
 class InvalidOptionError(FindxError):
-    msg = "Error: Invalid option"
+    msg = 'Error: Invalid option'
 
 class InvalidDirectoryError(FindxError):
-    msg = "Error: Invalid directory"
+    msg = 'Error: Invalid directory'
 
 class PrintWithXargsError(FindxError):
-    msg = "Error: Cannot mix '-print' with XARGS"
+    msg = """Error: Cannot mix '-print' with XARGS"""
 
 class ExecutableNotFoundError(FindxError):
-    msg = "Error: Executable not found"
+    msg = 'Error: Executable not found'
 
 def mustFindExecutable(name):
     executableAbsPath = distutils.spawn.find_executable(name)
@@ -267,8 +267,8 @@ class Findx(object):
         -inum -iregex -links -mmin -mtime -newer -perm -regex -regextype
         -samefile -size -type -uid -used -user -xtype
         """.split()
-    refTypes = "aBcmt"
-    TESTS_1.extend(["-newer%s%s" % (x, y) for x in refTypes for y in refTypes])
+    refTypes = 'aBcmt'
+    TESTS_1.extend(['-newer%s%s' % (x, y) for x in refTypes for y in refTypes])
     OPTIONS_1.extend(TESTS_1)
 
     TESTS_WITH_GLOB = """
@@ -291,13 +291,13 @@ class Findx(object):
 
     OPERATORS = UNARY_OPERATORS + BINARY_OPERATORS
 
-    RESERVED_WORDS = OPTIONS + OPERATORS + ["(", ")"]
+    RESERVED_WORDS = OPTIONS + OPERATORS + ['(', ')']
 
-    META_CHARS = "*?|,"
+    META_CHARS = '*?|,'
 
-    META_PAIRS = "[]{}"
+    META_PAIRS = '[]{}'
 
-    STDX_DIR_GLOB = "|".join("""
+    STDX_DIR_GLOB = '|'.join("""
         .svn
         .git
         .bzr
@@ -311,7 +311,7 @@ class Findx(object):
         *.egg
         """.split())
 
-    STDX_FILE_GLOB = "|".join("""
+    STDX_FILE_GLOB = '|'.join("""
         .*.sw?
         *.o
         *.a
@@ -386,7 +386,7 @@ class Findx(object):
     def matchesDir(self, s):
         return (not self.hasMeta(s) and
                 s not in self.RESERVED_WORDS and
-                not s.startswith("-"))
+                not s.startswith('-'))
 
     def pushArg(self, arg):
         self.args.insert(0, arg)
@@ -413,16 +413,16 @@ class Findx(object):
         return arg
 
     def launderCharClass(self, s):
-        return re.sub(r"\[[^]]*?\]", lambda m: "\x00" * len(m.group(0)), s)
+        return re.sub(r'\[[^]]*?\]', lambda m: '\x00' * len(m.group(0)), s)
 
     def findMulti(self, s, hitList, start=0, end=None):
         """Return (hitPos, hitString) for first hitString in hitList found.
 
-        Returns (-1, "") if no match.
+        Returns (-1, '') if no match.
         """
 
         hitPos = -1
-        hitString = ""
+        hitString = ''
         if end is None:
             end = len(s)
         for h in hitList:
@@ -439,13 +439,13 @@ class Findx(object):
         while start < len(cleanStr):
             c = cleanStr[start]
             start += 1
-            if c == "{":
+            if c == '{':
                 end = start
                 depth = 1
                 while end < len(cleanStr):
-                    if cleanStr[end] == "{":
+                    if cleanStr[end] == '{':
                         depth += 1
-                    elif cleanStr[end] == "}":
+                    elif cleanStr[end] == '}':
                         depth -= 1
                         if depth == 0:
                             return (start, end)
@@ -458,7 +458,7 @@ class Findx(object):
         while True:
             start, end = self.findBracedRange(s, start)
             if start >= 0:
-                s = s[:start] + "\x00" * (end - start) + s[end:]
+                s = s[:start] + '\x00' * (end - start) + s[end:]
                 start = end
             else:
                 break
@@ -466,7 +466,7 @@ class Findx(object):
 
     def findCutPoints(self, s):
         """
-        Scan for "," or "|" outside of all brackets and braces,
+        Scan for ',' or '|' outside of all brackets and braces,
         return list of indices of all such commas and pipes.
         """
 
@@ -474,7 +474,7 @@ class Findx(object):
         start = 0
         cutPoints = []
         while start < len(cleanS):
-            hitPos, hitString = self.findMulti(cleanS, ["|", ","], start)
+            hitPos, hitString = self.findMulti(cleanS, ['|', ','], start)
             if hitString:
                 cutPoints.append(hitPos)
                 start = hitPos + 1
@@ -520,9 +520,9 @@ class Findx(object):
             optionList = []
             for p in params:
                 if optionList:
-                    optionList.append("-o")
+                    optionList.append('-o')
                 optionList.extend([option, p])
-            optionList = ["("] + optionList + [")"]
+            optionList = ['('] + optionList + [')']
         return optionList
 
     def expandTestWithGlob(self, test, glob):
@@ -539,7 +539,7 @@ class Findx(object):
         elif option in self.OPTIONS_VAR:
             while True:
                 optionList.append(self.popArg())
-                if optionList[-1] in [";", "+"]:
+                if optionList[-1] in [';', '+']:
                     break
         elif option not in self.OPTIONS_0:
             raise InvalidOptionError(option)
@@ -547,10 +547,10 @@ class Findx(object):
 
     def getOptionalTerm(self):
         arg = self.peekArg()
-        if arg == "(":
+        if arg == '(':
             term = [self.popArg()]
             term.extend(self.getExpression())
-            term.append(self.popRequiredArg(")"))
+            term.append(self.popRequiredArg(')'))
         elif arg in self.UNARY_OPERATORS:
             term = [self.popArg()]
             term.extend(self.getTerm())
@@ -559,18 +559,18 @@ class Findx(object):
         elif arg in self.OPTIONS:
             term = self.getOptionList()
         elif self.hasMeta(arg):
-            term = ["-name", self.popArg()]
+            term = ['-name', self.popArg()]
         else:
             term = []
         if term:
-            if term[0] == "-type":
-                # Convert "-type ab" to "( -type a -o -type b )".
+            if term[0] == '-type':
+                # Convert '-type ab' to '( -type a -o -type b )'.
                 term = self.distributeOption(term[0], list(term[1]))
             elif term[0] in self.TESTS_WITH_GLOB:
                 term = self.expandTestWithGlob(*term)
             elif term[0] in self.ACTIONS:
                 self.sawAction = True
-                if term[0] == "-print":
+                if term[0] == '-print':
                     self.sawPrint = True
         return term
 
@@ -599,7 +599,7 @@ class Findx(object):
 
     def orExtend(self, base, extension):
         if base:
-            base.append("-o")
+            base.append('-o')
         base.extend(extension)
 
     def parseIncludeExclude(self, includeExclude):
@@ -607,29 +607,29 @@ class Findx(object):
 
     def parseFindxArgs(self):
         arg = self.popArg()
-        if arg in ["-help", "--help"]:
+        if arg in ['-help', '--help']:
             self.showHelp = True
-        elif arg in ["-version", "--version"]:
+        elif arg in ['-version', '--version']:
             self.showVersion = True
-        elif arg == "-show":
+        elif arg == '-show':
             self.show = True
-        elif arg == "-root":
+        elif arg == '-root':
             self.dirs.append(self.popArg())
-        elif arg == "-stdx":
-            self.pushArgList(["-x", "(",
-                "-type", "d", "-iname", self.STDX_DIR_GLOB,
-                "-o",
-                "-not", "-type", "d", "-iname", self.STDX_FILE_GLOB,
-                ")"])
-        elif arg == "-ffx":
-            self.pushArgList(["-stdx", "-L", "-type", "f"])
-        elif arg == "-ffg":
-            self.pushArgList(["-ffx", ":", "grep", "-H", "--color=auto",
-                "[", ":"])
-        elif arg in ["-e", "-x"]:
+        elif arg == '-stdx':
+            self.pushArgList(['-x', '(',
+                '-type', 'd', '-iname', self.STDX_DIR_GLOB,
+                '-o',
+                '-not', '-type', 'd', '-iname', self.STDX_FILE_GLOB,
+                ')'])
+        elif arg == '-ffx':
+            self.pushArgList(['-stdx', '-L', '-type', 'f'])
+        elif arg == '-ffg':
+            self.pushArgList(['-ffx', ':', 'grep', '-H', '--color=auto',
+                '[', ':'])
+        elif arg in ['-e', '-x']:
             self.parseIncludeExclude(self.excludes)
-        elif arg == "-i":
-            if self.peekArg() == "*":
+        elif arg == '-i':
+            if self.peekArg() == '*':
                 self.popArg()
                 self.includes = []
                 self.excludes = []
@@ -651,20 +651,20 @@ class Findx(object):
         self.args = list(args)
         while self.args:
             arg = self.popArg()
-            if arg == "[" and not self.lockedInXargs:
+            if arg == '[' and not self.lockedInXargs:
                 self.inXargs = False
             elif self.inXargs:
                 self.xargs.append(arg)
                 self.needXarg = False
-            elif arg == "]":
+            elif arg == ']':
                 self.inXargs = True
-            elif arg == "]]":
+            elif arg == ']]':
                 self.inXargs = True
                 self.lockedInXargs = True
-            elif arg == ":":
+            elif arg == ':':
                 self.inXargs = True
                 self.needXarg = True
-            elif arg == "::":
+            elif arg == '::':
                 self.inXargs = True
                 self.needXarg = True
                 self.lockedInXargs = True
@@ -678,32 +678,32 @@ class Findx(object):
             raise PrintWithXargsError()
 
         if not self.dirs:
-            self.dirs.append(".")
+            self.dirs.append('.')
 
         self.findPipeArgs = (
-                ["find"] +
+                ['find'] +
                 self.prePathOptions +
                 self.dirs +
                 self.postPathOptions)
         if self.excludes:
-            self.findPipeArgs.extend(["("] + self.excludes + [")"])
+            self.findPipeArgs.extend(['('] + self.excludes + [')'])
             if self.includes:
-                self.findPipeArgs.extend(["!", "("] + self.includes + [")"])
-            self.findPipeArgs.append("-prune")
-            self.findPipeArgs.append("-o")
+                self.findPipeArgs.extend(['!', '('] + self.includes + [')'])
+            self.findPipeArgs.append('-prune')
+            self.findPipeArgs.append('-o')
         if self.expression:
-            self.expression.insert(0, "(")
-            self.expression.append(")")
+            self.expression.insert(0, '(')
+            self.expression.append(')')
         self.findPipeArgs.extend(self.expression)
         if not self.sawAction:
             if self.xargs:
-                self.findPipeArgs.append("-print0")
+                self.findPipeArgs.append('-print0')
             elif self.excludes:
-                self.findPipeArgs.append("-print")
+                self.findPipeArgs.append('-print')
         if self.xargs:
-            self.xargsPipeArgs = ["xargs", "-0"]
+            self.xargsPipeArgs = ['xargs', '-0']
             if self.isGnuXargs:
-                self.xargsPipeArgs.append("--no-run-if-empty")
+                self.xargsPipeArgs.append('--no-run-if-empty')
             self.xargsPipeArgs.extend(self.xargs)
         else:
             self.xargsPipeArgs = []
@@ -714,9 +714,9 @@ class Findx(object):
         elif self.showVersion:
             print 'findx version', __version__
         elif self.show:
-            s = " ".join(self.findPipeArgs)
+            s = ' '.join(self.findPipeArgs)
             if self.xargsPipeArgs:
-                s += " | " + " ".join(self.xargsPipeArgs)
+                s += ' | ' + ' '.join(self.xargsPipeArgs)
             print s
         else:
             for d in self.dirs:
@@ -746,15 +746,15 @@ def main():
     except FindxError, e:
         print e
     except KeyboardInterrupt, e:
-        print "<break>"
+        print '<break>'
 
 def ffx():
-    sys.argv.insert(1, "-ffx")
+    sys.argv.insert(1, '-ffx')
     main()
 
 def ffg():
-    sys.argv.insert(1, "-ffg")
+    sys.argv.insert(1, '-ffg')
     main()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
