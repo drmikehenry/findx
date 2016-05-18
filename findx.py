@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-__VERSION__ = '0.9.5'
+__VERSION__ = '0.9.6'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
