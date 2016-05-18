@@ -30,7 +30,7 @@ Install ``nose``, then run the tests via::
 History
 -------
 
-Version 0.9.4
+Version 0.9.5
 ^^^^^^^^^^^^^
 
 - Use ``distutils.spawn.find_executable`` to force searching of ``PATH`` on
