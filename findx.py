@@ -193,6 +193,7 @@ def mustFindExecutable(name):
     executableAbsPath = distutils.spawn.find_executable(name)
     if executableAbsPath is None:
         raise ExecutableNotFoundError(name)
+    return executableAbsPath
 
 class Findx(object):
     OPTIONS_0 = []
