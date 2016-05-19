@@ -198,11 +198,11 @@ class ExecutableNotFoundError(FindxError):
     msg = 'Error: Executable not found'
 
 
-def mustFindExecutable(name):
-    executableAbsPath = distutils.spawn.find_executable(name)
-    if executableAbsPath is None:
+def must_find_executable(name):
+    executable_abs_path = distutils.spawn.find_executable(name)
+    if executable_abs_path is None:
         raise ExecutableNotFoundError(name)
-    return executableAbsPath
+    return executable_abs_path
 
 
 class Findx(object):
@@ -277,8 +277,9 @@ class Findx(object):
         -inum -iregex -links -mmin -mtime -newer -perm -regex -regextype
         -samefile -size -type -uid -used -user -xtype
         """.split()
-    refTypes = 'aBcmt'
-    TESTS_1.extend(['-newer%s%s' % (x, y) for x in refTypes for y in refTypes])
+    ref_types = 'aBcmt'
+    TESTS_1.extend(['-newer%s%s' % (x, y)
+                    for x in ref_types for y in ref_types])
     OPTIONS_1.extend(TESTS_1)
 
     TESTS_WITH_GLOB = """
@@ -348,41 +349,41 @@ class Findx(object):
         """.split())
 
     def __init__(self):
-        self.prePathOptions = []
-        self.postPathOptions = []
+        self.pre_path_options = []
+        self.post_path_options = []
         self.dirs = []
         self.excludes = []
         self.includes = []
-        self.sawAction = False
-        self.sawPrint = False
+        self.saw_action = False
+        self.saw_print = False
 
         self.expression = []
-        self.inXargs = False
-        self.lockedInXargs = False
-        self.needXarg = False
+        self.in_xargs = False
+        self.locked_in_xargs = False
+        self.need_xarg = False
         self.xargs = []
-        self.findPipeArgs = []
-        self.xargsPipeArgs = []
+        self.find_pipe_args = []
+        self.xargs_pipe_args = []
         self.show = False
-        self.showHelp = False
-        self.showVersion = False
+        self.show_help = False
+        self.show_version = False
 
-        self.checkXargs()
+        self.check_xargs()
 
-    def checkXargs(self):
+    def check_xargs(self):
         try:
             output = check_output(['xargs', '--version'], stderr=STDOUT)
 
             # If --version is accepted, we probably already know in GNU grep,
             # but let's check and make sure.
             if 'GNU' in output:
-                self.isGnuXargs = True
+                self.is_gnu_xargs = True
             else:
-                self.isGnuXargs = False
+                self.is_gnu_xargs = False
         except CalledProcessError:
-            self.isGnuXargs = False
+            self.is_gnu_xargs = False
 
-    def hasMeta(self, s):
+    def has_meta(self, s):
         for c in self.META_CHARS:
             if c in s:
                 return True
@@ -393,80 +394,80 @@ class Findx(object):
                     return True
         return False
 
-    def matchesDir(self, s):
-        return (not self.hasMeta(s) and
+    def matches_dir(self, s):
+        return (not self.has_meta(s) and
                 s not in self.RESERVED_WORDS and
                 not s.startswith('-'))
 
-    def pushArg(self, arg):
+    def push_arg(self, arg):
         self.args.insert(0, arg)
 
-    def pushArgList(self, argList):
-        self.args[:0] = argList
+    def push_arg_list(self, arg_list):
+        self.args[:0] = arg_list
 
-    def peekArg(self):
+    def peek_arg(self):
         try:
             return self.args[0]
         except IndexError:
             raise MissingArgumentError()
 
-    def popArg(self):
+    def pop_arg(self):
         try:
             return self.args.pop(0)
         except IndexError:
             raise MissingArgumentError()
 
-    def popRequiredArg(self, literal):
-        arg = self.popArg()
+    def pop_required_arg(self, literal):
+        arg = self.pop_arg()
         if arg != literal:
             raise MissingArgumentError(literal)
         return arg
 
-    def launderCharClass(self, s):
+    def launder_char_class(self, s):
         return re.sub(r'\[[^]]*?\]', lambda m: '\x00' * len(m.group(0)), s)
 
-    def findMulti(self, s, hitList, start=0, end=None):
-        """Return (hitPos, hitString) for first hitString in hitList found.
+    def find_multi(self, s, hit_list, start=0, end=None):
+        """Return (hit_pos, hit_string) for first hit_string in hit_list found.
 
         Returns (-1, '') if no match.
         """
 
-        hitPos = -1
-        hitString = ''
+        hit_pos = -1
+        hit_string = ''
         if end is None:
             end = len(s)
-        for h in hitList:
+        for h in hit_list:
             i = s.find(h, start, end)
-            if i >= 0 and (hitPos < 0 or i < hitPos):
-                hitPos = i
-                hitString = h
-        return hitPos, hitString
+            if i >= 0 and (hit_pos < 0 or i < hit_pos):
+                hit_pos = i
+                hit_string = h
+        return hit_pos, hit_string
 
-    def findBracedRange(self, s, start=0):
+    def find_braced_range(self, s, start=0):
         """Return range (start, end) inside outermost braces."""
 
-        cleanStr = self.launderCharClass(s)
-        while start < len(cleanStr):
-            c = cleanStr[start]
+        clean_str = self.launder_char_class(s)
+        while start < len(clean_str):
+            c = clean_str[start]
             start += 1
             if c == '{':
                 end = start
                 depth = 1
-                while end < len(cleanStr):
-                    if cleanStr[end] == '{':
+                while end < len(clean_str):
+                    if clean_str[end] == '{':
                         depth += 1
-                    elif cleanStr[end] == '}':
+                    elif clean_str[end] == '}':
                         depth -= 1
                         if depth == 0:
                             return (start, end)
                     end += 1
         return (-1, -1)
 
-    def launderCharClassAndBraces(self, s):
-        s = self.launderCharClass(s)
+    def launder_char_class_and_braces(self, s):
+        s = self.launder_char_class(s)
         start = 0
         while True:
-            start, end = self.findBracedRange(s, start)
+            start, end = self.find_braced_range(s, start)
             if start >= 0:
                 s = s[:start] + '\x00' * (end - start) + s[end:]
                 start = end
@@ -474,274 +475,276 @@ class Findx(object):
                 break
         return s
 
-    def findCutPoints(self, s):
+    def find_cut_points(self, s):
         """
         Scan for ',' or '|' outside of all brackets and braces,
         return list of indices of all such commas and pipes.
         """
 
-        cleanS = self.launderCharClassAndBraces(s)
+        clean_s = self.launder_char_class_and_braces(s)
         start = 0
-        cutPoints = []
-        while start < len(cleanS):
-            hitPos, hitString = self.findMulti(cleanS, ['|', ','], start)
-            if hitString:
-                cutPoints.append(hitPos)
-                start = hitPos + 1
+        cut_points = []
+        while start < len(clean_s):
+            hit_pos, hit_string = self.find_multi(clean_s, ['|', ','], start)
+            if hit_string:
+                cut_points.append(hit_pos)
+                start = hit_pos + 1
             else:
                 break
-        return cutPoints
+        return cut_points
 
-    def splitGlobOutsideBraces(self, glob):
-        cutPoints = self.findCutPoints(glob)
+    def split_glob_outside_braces(self, glob):
+        cut_points = self.find_cut_points(glob)
         pieces = []
         start = 0
-        for p in cutPoints + [len(glob)]:
+        for p in cut_points + [len(glob)]:
             pieces.append(glob[start:p])
             start = p + 1
         return pieces
 
-    def splitGlob(self, glob):
-        outputHopper = []
-        inputHopper = self.splitGlobOutsideBraces(glob)
-        while inputHopper:
-            glob = inputHopper.pop(0)
+    def split_glob(self, glob):
+        output_hopper = []
+        input_hopper = self.split_glob_outside_braces(glob)
+        while input_hopper:
+            glob = input_hopper.pop(0)
             start = 0
             while True:
-                start, end = self.findBracedRange(glob, start)
+                start, end = self.find_braced_range(glob, start)
                 if start < 0:
                     if glob:
-                        outputHopper.append(glob)
+                        output_hopper.append(glob)
                     break
-                middles = self.splitGlobOutsideBraces(glob[start:end])
+                middles = self.split_glob_outside_braces(glob[start:end])
                 if len(middles) > 1:
                     pre = glob[:start - 1]
                     post = glob[end + 1:]
-                    inputHopper[:0] = [pre + mid + post for mid in middles]
+                    input_hopper[:0] = [pre + mid + post for mid in middles]
                     break
-        if not outputHopper:
-            outputHopper.append('')
-        return outputHopper
+        if not output_hopper:
+            output_hopper.append('')
+        return output_hopper
 
-    def distributeOption(self, option, params):
+    def distribute_option(self, option, params):
         if len(params) <= 1:
-            optionList = [option] + params
+            option_list = [option] + params
         else:
-            optionList = []
+            option_list = []
             for p in params:
-                if optionList:
-                    optionList.append('-o')
-                optionList.extend([option, p])
-            optionList = ['('] + optionList + [')']
-        return optionList
+                if option_list:
+                    option_list.append('-o')
+                option_list.extend([option, p])
+            option_list = ['('] + option_list + [')']
+        return option_list
 
-    def expandTestWithGlob(self, test, glob):
-        return self.distributeOption(test, self.splitGlob(glob))
+    def expand_test_with_glob(self, test, glob):
+        return self.distribute_option(test, self.split_glob(glob))
 
-    def getOptionList(self):
-        option = self.popArg()
-        optionList = [option]
+    def get_option_list(self):
+        option = self.pop_arg()
+        option_list = [option]
         if option in self.OPTIONS_1:
-            optionList.append(self.popArg())
+            option_list.append(self.pop_arg())
         elif option in self.OPTIONS_2:
-            optionList.append(self.popArg())
-            optionList.append(self.popArg())
+            option_list.append(self.pop_arg())
+            option_list.append(self.pop_arg())
         elif option in self.OPTIONS_VAR:
             while True:
-                optionList.append(self.popArg())
-                if optionList[-1] in [';', '+']:
+                option_list.append(self.pop_arg())
+                if option_list[-1] in [';', '+']:
                     break
         elif option not in self.OPTIONS_0:
             raise InvalidOptionError(option)
-        return optionList
+        return option_list
 
-    def getOptionalTerm(self):
-        arg = self.peekArg()
+    def get_optional_term(self):
+        arg = self.peek_arg()
         if arg == '(':
-            term = [self.popArg()]
-            term.extend(self.getExpression())
-            term.append(self.popRequiredArg(')'))
+            term = [self.pop_arg()]
+            term.extend(self.get_expression())
+            term.append(self.pop_required_arg(')'))
         elif arg in self.UNARY_OPERATORS:
-            term = [self.popArg()]
-            term.extend(self.getTerm())
+            term = [self.pop_arg()]
+            term.extend(self.get_term())
         elif arg in self.PRE_EXPR_OPTIONS:
             term = []
         elif arg in self.OPTIONS:
-            term = self.getOptionList()
-        elif self.hasMeta(arg):
-            term = ['-name', self.popArg()]
+            term = self.get_option_list()
+        elif self.has_meta(arg):
+            term = ['-name', self.pop_arg()]
         else:
             term = []
         if term:
             if term[0] == '-type':
                 # Convert '-type ab' to '( -type a -o -type b )'.
-                term = self.distributeOption(term[0], list(term[1]))
+                term = self.distribute_option(term[0], list(term[1]))
             elif term[0] in self.TESTS_WITH_GLOB:
-                term = self.expandTestWithGlob(*term)
+                term = self.expand_test_with_glob(*term)
             elif term[0] in self.ACTIONS:
-                self.sawAction = True
+                self.saw_action = True
                 if term[0] == '-print':
-                    self.sawPrint = True
+                    self.saw_print = True
         return term
 
-    def getTerm(self):
-        term = self.getOptionalTerm()
+    def get_term(self):
+        term = self.get_optional_term()
         if not term:
             if self.args:
-                raise InvalidOptionError(self.peekArg())
+                raise InvalidOptionError(self.peek_arg())
             else:
                 raise MissingArgumentError()
         return term
 
-    def getExpression(self):
-        expr = self.getTerm()
+    def get_expression(self):
+        expr = self.get_term()
         while self.args:
-            if self.peekArg() in self.BINARY_OPERATORS:
-                expr.append(self.popArg())
-                expr.extend(self.getTerm())
+            if self.peek_arg() in self.BINARY_OPERATORS:
+                expr.append(self.pop_arg())
+                expr.extend(self.get_term())
             else:
-                optTerm = self.getOptionalTerm()
-                if optTerm:
-                    expr.extend(optTerm)
+                opt_term = self.get_optional_term()
+                if opt_term:
+                    expr.extend(opt_term)
                 else:
                     break
         return expr
 
-    def orExtend(self, base, extension):
+    def or_extend(self, base, extension):
         if base:
             base.append('-o')
         base.extend(extension)
 
-    def parseIncludeExclude(self, includeExclude):
-        self.orExtend(includeExclude, self.getTerm())
+    def parse_include_exclude(self, include_exclude):
+        self.or_extend(include_exclude, self.get_term())
 
-    def parseFindxArgs(self):
-        arg = self.popArg()
+    def parse_findx_args(self):
+        arg = self.pop_arg()
         if arg in ['-help', '--help']:
-            self.showHelp = True
+            self.show_help = True
         elif arg in ['-version', '--version']:
-            self.showVersion = True
+            self.show_version = True
         elif arg == '-show':
             self.show = True
         elif arg == '-root':
-            self.dirs.append(self.popArg())
+            self.dirs.append(self.pop_arg())
         elif arg == '-stdx':
-            self.pushArgList(
+            self.push_arg_list(
                 ['-x', '(', '-type', 'd', '-iname', self.STDX_DIR_GLOB, '-o',
                  '-not', '-type', 'd', '-iname', self.STDX_FILE_GLOB, ')'])
         elif arg == '-ffx':
-            self.pushArgList(['-stdx', '-L', '-type', 'f'])
+            self.push_arg_list(['-stdx', '-L', '-type', 'f'])
         elif arg == '-ffg':
-            self.pushArgList(['-ffx', ':', 'grep', '-H', '--color=auto',
-                              '[', ':'])
+            self.push_arg_list(['-ffx', ':', 'grep', '-H', '--color=auto',
+                                '[', ':'])
         elif arg in ['-e', '-x']:
-            self.parseIncludeExclude(self.excludes)
+            self.parse_include_exclude(self.excludes)
         elif arg == '-i':
-            if self.peekArg() == '*':
-                self.popArg()
+            if self.peek_arg() == '*':
+                self.pop_arg()
                 self.includes = []
                 self.excludes = []
             else:
-                self.parseIncludeExclude(self.includes)
+                self.parse_include_exclude(self.includes)
         elif arg in self.PRE_PATH_OPTIONS:
-            self.pushArg(arg)
-            self.prePathOptions.extend(self.getOptionList())
+            self.push_arg(arg)
+            self.pre_path_options.extend(self.get_option_list())
         elif arg in self.POST_PATH_OPTIONS:
-            self.pushArg(arg)
-            self.postPathOptions.extend(self.getOptionList())
-        elif self.matchesDir(arg):
+            self.push_arg(arg)
+            self.post_path_options.extend(self.get_option_list())
+        elif self.matches_dir(arg):
             self.dirs.append(arg)
         else:
-            self.pushArg(arg)
-            self.expression.extend(self.getExpression())
+            self.push_arg(arg)
+            self.expression.extend(self.get_expression())
 
-    def parseCommandLine(self, args):
+    def parse_command_line(self, args):
         self.args = list(args)
         while self.args:
-            arg = self.popArg()
-            if arg == '[' and not self.lockedInXargs:
-                self.inXargs = False
-            elif self.inXargs:
+            arg = self.pop_arg()
+            if arg == '[' and not self.locked_in_xargs:
+                self.in_xargs = False
+            elif self.in_xargs:
                 self.xargs.append(arg)
-                self.needXarg = False
+                self.need_xarg = False
             elif arg == ']':
-                self.inXargs = True
+                self.in_xargs = True
             elif arg == ']]':
-                self.inXargs = True
-                self.lockedInXargs = True
+                self.in_xargs = True
+                self.locked_in_xargs = True
             elif arg == ':':
-                self.inXargs = True
-                self.needXarg = True
+                self.in_xargs = True
+                self.need_xarg = True
             elif arg == '::':
-                self.inXargs = True
-                self.needXarg = True
-                self.lockedInXargs = True
+                self.in_xargs = True
+                self.need_xarg = True
+                self.locked_in_xargs = True
             else:
-                self.pushArg(arg)
-                self.parseFindxArgs()
-        if self.needXarg:
+                self.push_arg(arg)
+                self.parse_findx_args()
+        if self.need_xarg:
             raise MissingXargError()
 
-        if self.sawPrint and self.xargs:
+        if self.saw_print and self.xargs:
             raise PrintWithXargsError()
 
         if not self.dirs:
             self.dirs.append('.')
 
-        self.findPipeArgs = (
+        self.find_pipe_args = (
             ['find'] +
-            self.prePathOptions +
+            self.pre_path_options +
             self.dirs +
-            self.postPathOptions)
+            self.post_path_options)
         if self.excludes:
-            self.findPipeArgs.extend(['('] + self.excludes + [')'])
+            self.find_pipe_args.extend(['('] + self.excludes + [')'])
             if self.includes:
-                self.findPipeArgs.extend(['!', '('] + self.includes + [')'])
-            self.findPipeArgs.append('-prune')
-            self.findPipeArgs.append('-o')
+                self.find_pipe_args.extend(['!', '('] + self.includes + [')'])
+            self.find_pipe_args.append('-prune')
+            self.find_pipe_args.append('-o')
         if self.expression:
             self.expression.insert(0, '(')
             self.expression.append(')')
-        self.findPipeArgs.extend(self.expression)
-        if not self.sawAction:
+        self.find_pipe_args.extend(self.expression)
+        if not self.saw_action:
             if self.xargs:
-                self.findPipeArgs.append('-print0')
+                self.find_pipe_args.append('-print0')
             elif self.excludes:
-                self.findPipeArgs.append('-print')
+                self.find_pipe_args.append('-print')
         if self.xargs:
-            self.xargsPipeArgs = ['xargs', '-0']
-            if self.isGnuXargs:
-                self.xargsPipeArgs.append('--no-run-if-empty')
-            self.xargsPipeArgs.extend(self.xargs)
+            self.xargs_pipe_args = ['xargs', '-0']
+            if self.is_gnu_xargs:
+                self.xargs_pipe_args.append('--no-run-if-empty')
+            self.xargs_pipe_args.extend(self.xargs)
         else:
-            self.xargsPipeArgs = []
+            self.xargs_pipe_args = []
 
     def run(self):
-        if self.showHelp:
+        if self.show_help:
             self.help()
-        elif self.showVersion:
+        elif self.show_version:
             print 'findx version', __version__
         elif self.show:
-            s = ' '.join(self.findPipeArgs)
-            if self.xargsPipeArgs:
-                s += ' | ' + ' '.join(self.xargsPipeArgs)
+            s = ' '.join(self.find_pipe_args)
+            if self.xargs_pipe_args:
+                s += ' | ' + ' '.join(self.xargs_pipe_args)
             print s
         else:
             for d in self.dirs:
                 if not os.path.isdir(d):
                     raise InvalidDirectoryError(d)
-            findAbsPath = mustFindExecutable(self.findPipeArgs[0])
-            if self.xargsPipeArgs:
-                xargsAbsPath = mustFindExecutable(self.xargsPipeArgs[0])
-                findProc = Popen(self.findPipeArgs, stdout=PIPE,
-                                 executable=findAbsPath)
-                xargsProc = Popen(self.xargsPipeArgs, stdin=findProc.stdout,
-                                  executable=xargsAbsPath)
-                findProc.wait()
-                xargsProc.wait()
+            find_abs_path = must_find_executable(self.find_pipe_args[0])
+            if self.xargs_pipe_args:
+                xargs_abs_path = must_find_executable(self.xargs_pipe_args[0])
+                find_proc = Popen(self.find_pipe_args, stdout=PIPE,
+                                  executable=find_abs_path)
+                xargs_proc = Popen(self.xargs_pipe_args,
+                                   stdin=find_proc.stdout,
+                                   executable=xargs_abs_path)
+                find_proc.wait()
+                xargs_proc.wait()
             else:
-                findProc = Popen(self.findPipeArgs, executable=findAbsPath)
-                findProc.wait()
+                find_proc = Popen(self.find_pipe_args,
+                                  executable=find_abs_path)
+                find_proc.wait()
 
     def help(self):
         print HELP_TEXT
@@ -750,7 +753,7 @@ class Findx(object):
 def main():
     f = Findx()
     try:
-        f.parseCommandLine(sys.argv[1:])
+        f.parse_command_line(sys.argv[1:])
         f.run()
     except FindxError as e:
         print e
