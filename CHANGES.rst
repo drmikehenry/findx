@@ -9,6 +9,10 @@ Version 0.9.6
 
 - Move change history into CHANGES.rst.
 
+- PEP8 conformance.
+
+- Support Python 2 and Python 3 in the same source base.
+
 Version 0.9.5
 =============
 

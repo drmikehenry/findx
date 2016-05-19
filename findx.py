@@ -1,4 +1,7 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
+
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import os
 import sys
@@ -278,8 +281,9 @@ class Findx(object):
         -samefile -size -type -uid -used -user -xtype
         """.split()
     ref_types = 'aBcmt'
-    TESTS_1.extend(['-newer%s%s' % (x, y)
-                    for x in ref_types for y in ref_types])
+    for x in ref_types:
+        for y in ref_types:
+            TESTS_1.append('-newer%s%s' % (x, y))
     OPTIONS_1.extend(TESTS_1)
 
     TESTS_WITH_GLOB = """
@@ -376,7 +380,7 @@ class Findx(object):
 
             # If --version is accepted, we probably already know in GNU grep,
             # but let's check and make sure.
-            if 'GNU' in output:
+            if b'GNU' in output:
                 self.is_gnu_xargs = True
             else:
                 self.is_gnu_xargs = False
@@ -721,12 +725,12 @@ class Findx(object):
         if self.show_help:
             self.help()
         elif self.show_version:
-            print 'findx version', __version__
+            print('findx version %s' % __version__)
         elif self.show:
             s = ' '.join(self.find_pipe_args)
             if self.xargs_pipe_args:
                 s += ' | ' + ' '.join(self.xargs_pipe_args)
-            print s
+            print(s)
         else:
             for d in self.dirs:
                 if not os.path.isdir(d):
@@ -747,7 +751,7 @@ class Findx(object):
                 find_proc.wait()
 
     def help(self):
-        print HELP_TEXT
+        print(HELP_TEXT)
 
 
 def main():
@@ -756,9 +760,9 @@ def main():
         f.parse_command_line(sys.argv[1:])
         f.run()
     except FindxError as e:
-        print e
+        print(e)
     except KeyboardInterrupt as e:
-        print '<break>'
+        print('<break>')
 
 
 def ffx():
