@@ -1,2 +1,3 @@
 include LICENSE.rst
 include CHANGES.rst
+include runtests.py

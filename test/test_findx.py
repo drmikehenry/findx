@@ -6,10 +6,6 @@ import findx
 
 class TestFindx(unittest.TestCase):
 
-    def test_io_error(self):
-        with self.assertRaises(IOError):
-            raise IOError()
-
     def test_has_meta(self):
         f = findx.Findx()
         self.assertTrue(f.has_meta('one*'))
@@ -38,8 +34,7 @@ class TestFindx(unittest.TestCase):
     def test_get_option_list_underflow(self):
         f = findx.Findx()
         f.args = ['-printf']
-        with self.assertRaises(findx.MissingArgumentError):
-            f.get_option_list()
+        self.assertRaises(findx.MissingArgumentError, f.get_option_list)
 
     def test_no_dirs(self):
         f = findx.Findx()

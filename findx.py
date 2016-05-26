@@ -7,9 +7,9 @@ import os
 import sys
 import re
 import distutils.spawn
-from subprocess import Popen, STDOUT, PIPE, check_output, CalledProcessError
+from subprocess import Popen, STDOUT, PIPE
 
-__version__ = '0.9.6'
+__version__ = '0.9.7'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -376,15 +376,19 @@ class Findx(object):
 
     def check_xargs(self):
         try:
-            output = check_output(['xargs', '--version'], stderr=STDOUT)
+            p = Popen(['xargs', '--version'], stdout=PIPE, stderr=STDOUT)
+            output = p.communicate()[0]
+            retcode = p.poll()
+        except OSError:
+            retcode = 1
+            output = b''
 
-            # If --version is accepted, we probably already know in GNU grep,
-            # but let's check and make sure.
-            if b'GNU' in output:
-                self.is_gnu_xargs = True
-            else:
-                self.is_gnu_xargs = False
-        except CalledProcessError:
+        # If retcode indicates success (implying --version is accepted), we
+        # probably already know it's GNU xargs, but let's check and make
+        # sure.
+        if retcode == 0 and b'GNU' in output:
+            self.is_gnu_xargs = True
+        else:
             self.is_gnu_xargs = False
 
     def has_meta(self, s):
