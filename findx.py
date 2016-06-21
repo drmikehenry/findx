@@ -745,10 +745,14 @@ class Findx(object):
                                    executable=xargs_abs_path)
                 find_proc.wait()
                 xargs_proc.wait()
+                exit_code = xargs_proc.returncode
             else:
                 find_proc = Popen(self.find_pipe_args,
                                   executable=find_abs_path)
                 find_proc.wait()
+                exit_code = find_proc.returncode
+
+            return exit_code
 
     def help(self):
         print(HELP_TEXT)
@@ -758,7 +762,7 @@ def main():
     f = Findx()
     try:
         f.parse_command_line(sys.argv[1:])
-        f.run()
+        return f.run()
     except FindxError as e:
         print(e)
     except KeyboardInterrupt as e:
@@ -767,12 +771,12 @@ def main():
 
 def ffx():
     sys.argv.insert(1, '-ffx')
-    main()
+    return main()
 
 
 def ffg():
     sys.argv.insert(1, '-ffg')
-    main()
+    return main()
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
