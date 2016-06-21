@@ -2,6 +2,17 @@
 History
 *******
 
+Version 0.9.8
+=============
+
+- Add support for Travis CI (thanks to John Vandenberg).
+
+Version 0.9.7
+=============
+
+- Restore support for Python 2.6.
+  Now these Python versions are supported: 2.6 2.7 3.3 3.4 3.5
+
 Version 0.9.6
 =============
 

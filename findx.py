@@ -9,7 +9,7 @@ import re
 import distutils.spawn
 from subprocess import Popen, STDOUT, PIPE
 
-__version__ = '0.9.7'
+__version__ = '0.9.8'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
