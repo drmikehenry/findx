@@ -2,6 +2,12 @@
 History
 *******
 
+Version 0.9.9
+=============
+
+- Return an exit status from ``findx``, reflecting errors from ``find``,
+  ``xargs``, or ``findx`` itself.  See ``findx --help`` for exit status values.
+
 Version 0.9.8
 =============
 

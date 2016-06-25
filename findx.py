@@ -6,10 +6,12 @@ from __future__ import unicode_literals
 import os
 import sys
 import re
+import traceback
+import signal
 import distutils.spawn
 from subprocess import Popen, STDOUT, PIPE
 
-__version__ = '0.9.8'
+__version__ = '0.9.9'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -122,6 +124,28 @@ STANDARD ACTION
   '-delete', ...), a standard action will be appended to EXPRESSION.  The
   standard action is '-print0' when XARGS are present, and '-print' otherwise.
 
+EXIT STATUS
+  0         full success
+  1         ``findx`` syntax error (e.g., invalid command-line option)
+  2         ``findx`` runtime error (e.g., missing ``xargs`` command)
+  3         ``findx`` uncaught exception (if seen, please submit a bug report)
+  4..99     reserved
+  100       multiple pipeline failures (``find`` and ``xargs`` both non-zero)
+
+  101..119  ``find`` returned 1..19
+  120       ``find`` returned 20..127
+
+  121       ``xargs`` returned 1
+  122       ``xargs`` returned 2..122
+  123..127  ``xargs`` returned 123..127
+
+  128+n     ``findx`` or other program terminated on signal n
+
+  Returning 128+n takes precedence over returning 100.  If any of ``findx``,
+  ``find``, or ``xargs`` are terminated by a signal, the overall exit status
+  will reflect one of their individual exit statuses rather than a combined
+  code of 100.
+
 EXAMPLES
 
 # Grep for 'main' in .c and .cpp files.
@@ -177,27 +201,35 @@ class FindxError(Exception):
         return msg + ' ' + ', '.join(map(repr, self.args))
 
 
-class MissingArgumentError(FindxError):
+class FindxSyntaxError(FindxError):
+    pass
+
+
+class FindxRuntimeError(FindxError):
+    pass
+
+
+class MissingArgumentError(FindxSyntaxError):
     msg = 'Error: Missing argument'
 
 
-class MissingXargError(FindxError):
+class MissingXargError(FindxSyntaxError):
     msg = 'Error: Missing required xarg'
 
 
-class InvalidOptionError(FindxError):
+class InvalidOptionError(FindxSyntaxError):
     msg = 'Error: Invalid option'
 
 
-class InvalidDirectoryError(FindxError):
-    msg = 'Error: Invalid directory'
-
-
-class PrintWithXargsError(FindxError):
+class PrintWithXargsError(FindxSyntaxError):
     msg = """Error: Cannot mix '-print' with XARGS"""
 
 
-class ExecutableNotFoundError(FindxError):
+class InvalidDirectoryError(FindxRuntimeError):
+    msg = 'Error: Invalid directory'
+
+
+class ExecutableNotFoundError(FindxRuntimeError):
     msg = 'Error: Executable not found'
 
 
@@ -206,6 +238,38 @@ def must_find_executable(name):
     if executable_abs_path is None:
         raise ExecutableNotFoundError(name)
     return executable_abs_path
+
+
+def map_find_status(find_status):
+    if 1 <= find_status <= 19:
+        return 100 + find_status
+    elif 20 <= find_status <= 127:
+        return 120
+    else:
+        return find_status
+
+
+def map_xargs_status(xargs_status):
+    if xargs_status == 1:
+        return 121
+    elif 2 <= xargs_status <= 122:
+        return 122
+    else:
+        return xargs_status
+
+
+def merge_find_xargs_status(find_status, xargs_status):
+    if find_status >= 128:
+        exit_status = find_status
+    elif xargs_status >= 128:
+        exit_status = xargs_status
+    elif find_status != 0 and xargs_status != 0:
+        exit_status = 100
+    elif find_status != 0:
+        exit_status = map_find_status(find_status)
+    else:
+        exit_status = map_xargs_status(xargs_status)
+    return exit_status
 
 
 class Findx(object):
@@ -371,6 +435,7 @@ class Findx(object):
         self.show = False
         self.show_help = False
         self.show_version = False
+        self.pipe_status = None
 
         self.check_xargs()
 
@@ -726,6 +791,8 @@ class Findx(object):
             self.xargs_pipe_args = []
 
     def run(self):
+        self.pipe_status = None
+        exit_status = 0
         if self.show_help:
             self.help()
         elif self.show_version:
@@ -749,34 +816,53 @@ class Findx(object):
                                    executable=xargs_abs_path)
                 find_proc.wait()
                 xargs_proc.wait()
+                find_status = find_proc.returncode
+                xargs_status = xargs_proc.returncode
+                self.pipe_status = (find_status, xargs_status)
+                exit_status = merge_find_xargs_status(find_status,
+                                                      xargs_status)
             else:
                 find_proc = Popen(self.find_pipe_args,
                                   executable=find_abs_path)
                 find_proc.wait()
+                find_status = find_proc.returncode
+                self.pipe_status = (find_status,)
+                exit_status = merge_find_xargs_status(find_status, 0)
+        return exit_status
 
     def help(self):
         print(HELP_TEXT)
 
 
 def main():
-    f = Findx()
     try:
-        f.parse_command_line(sys.argv[1:])
-        f.run()
-    except FindxError as e:
-        print(e)
-    except KeyboardInterrupt as e:
-        print('<break>')
+        f = Findx()
+        try:
+            f.parse_command_line(sys.argv[1:])
+            exit_status = f.run()
+        except FindxSyntaxError as e:
+            print('findx:', e, file=sys.stderr)
+            exit_status = 1
+        except FindxRuntimeError as e:
+            print('findx:', e, file=sys.stderr)
+            exit_status = 2
+        except KeyboardInterrupt:
+            exit_status = 128 + signal.SIGINT
+    except:
+        print('findx: Uncaught exception:', file=sys.stderr)
+        traceback.print_exc()
+        exit_status = 3
+    return exit_status
 
 
 def ffx():
     sys.argv.insert(1, '-ffx')
-    main()
+    return main()
 
 
 def ffg():
     sys.argv.insert(1, '-ffg')
-    main()
+    return main()
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
