@@ -11,7 +11,7 @@ import signal
 import distutils.spawn
 from subprocess import Popen, STDOUT, PIPE
 
-__version__ = '0.9.9'
+__version__ = '0.9.10'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
