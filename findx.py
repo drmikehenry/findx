@@ -190,6 +190,10 @@ EXAMPLES
 
 """
 
+def warn(message):
+    print('findx: %s' % message, file=sys.stderr)
+
+
 
 class FindxError(Exception):
 
@@ -841,15 +845,15 @@ def main():
             f.parse_command_line(sys.argv[1:])
             exit_status = f.run()
         except FindxSyntaxError as e:
-            print('findx:', e, file=sys.stderr)
+            warn(str(e))
             exit_status = 1
         except FindxRuntimeError as e:
-            print('findx:', e, file=sys.stderr)
+            warn(str(e))
             exit_status = 2
         except KeyboardInterrupt:
             exit_status = 128 + signal.SIGINT
     except:
-        print('findx: Uncaught exception:', file=sys.stderr)
+        warn('uncaught exception:')
         traceback.print_exc()
         exit_status = 3
     return exit_status
