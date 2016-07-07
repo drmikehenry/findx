@@ -13,6 +13,6 @@ if pyver < (2, 6) or (pyver_major == 3 and pyver < (3, 3)):
 else:
     import subprocess
     if pyver < (2, 7):
-        subprocess.call(['python', '-m', 'discover'])
+        sys.exit(subprocess.call(['python', '-m', 'discover']))
     else:
-        subprocess.call(['python', '-m', 'unittest', 'discover'])
+        sys.exit(subprocess.call(['python', '-m', 'unittest', 'discover']))
