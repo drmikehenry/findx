@@ -195,6 +195,11 @@ def warn(message):
     print('findx: %s' % message, file=sys.stderr)
 
 
+def strepr(s):
+    """repr(s) without the leading "u" for Python 2 Unicode strings."""
+    return repr(s).lstrip('u')
+
+
 def quoted(s):
     if "'" not in s:
         return "'" + s + "'"
@@ -267,9 +272,9 @@ def quoted_split(value):
             keep(c)
     finish_arg()
     if saw_escape:
-        raise ValueError('No escaped character in %s' % quoted(value))
+        raise ValueError('No escaped character in %s' % strepr(value))
     if quote:
-        raise ValueError('No closing quotation in %s' % quoted(value))
+        raise ValueError('No closing quotation in %s' % strepr(value))
     return args
 
 
@@ -298,45 +303,58 @@ def joined_lines(lines):
 
 
 class FindxError(Exception):
-
-    def __str__(self):
-        try:
-            msg = self.msg
-        except AttributeError:
-            msg = self.__class__.__name__
-        return msg + ' ' + ', '.join(map(repr, self.args))
+    """The base exception class for all findx errors."""
 
 
 class FindxSyntaxError(FindxError):
-    pass
+    """An invocation error (typically caused by bad user-supplied data)."""
 
 
 class FindxRuntimeError(FindxError):
-    pass
+    """A runtime error."""
 
 
 class MissingArgumentError(FindxSyntaxError):
-    msg = 'Error: Missing argument'
+    def __init__(self):
+        super(MissingArgumentError, self).__init__(
+            'Missing command-line argument')
+
+
+class UnexpectedArgumentError(FindxSyntaxError):
+    def __init__(self, arg, expected_arg):
+        super(UnexpectedArgumentError, self).__init__(
+            'Got argument %s, expected %s' % (
+                strepr(arg), strepr(expected_arg)))
 
 
 class MissingXargError(FindxSyntaxError):
-    msg = 'Error: Missing required xarg'
+    def __init__(self):
+        super(MissingXargError, self).__init__(
+            'Missing required xarg')
 
 
 class InvalidOptionError(FindxSyntaxError):
-    msg = 'Error: Invalid option'
+    def __init__(self, bad_option):
+        super(InvalidOptionError, self).__init__(
+            'Invalid command-line option %s' % strepr(bad_option))
 
 
 class PrintWithXargsError(FindxSyntaxError):
-    msg = """Error: Cannot mix '-print' with XARGS"""
+    def __init__(self):
+        super(PrintWithXargsError, self).__init__(
+            "Cannot mix '-print' with XARGS")
 
 
 class InvalidDirectoryError(FindxRuntimeError):
-    msg = 'Error: Invalid directory'
+    def __init__(self, directory):
+        super(InvalidDirectoryError, self).__init__(
+            'Invalid directory %s' % strepr(directory))
 
 
 class ExecutableNotFoundError(FindxRuntimeError):
-    msg = 'Error: Executable not found'
+    def __init__(self, executable):
+        super(ExecutableNotFoundError, self).__init__(
+            'Executable %s not found' % strepr(executable))
 
 
 def must_find_executable(name):
@@ -596,10 +614,10 @@ class Findx(object):
         except IndexError:
             raise MissingArgumentError()
 
-    def pop_required_arg(self, literal):
+    def pop_expected_arg(self, expected_arg):
         arg = self.pop_arg()
-        if arg != literal:
-            raise MissingArgumentError(literal)
+        if arg != expected_arg:
+            raise UnexpectedArgumentError(arg, expected_arg)
         return arg
 
     def launder_char_class(self, s):
@@ -740,7 +758,7 @@ class Findx(object):
         if arg == '(':
             term = [self.pop_arg()]
             term.extend(self.get_expression())
-            term.append(self.pop_required_arg(')'))
+            term.append(self.pop_expected_arg(')'))
         elif arg in self.UNARY_OPERATORS:
             term = [self.pop_arg()]
             term.extend(self.get_term())
@@ -947,10 +965,10 @@ def main():
             f.parse_command_line(sys.argv[1:])
             exit_status = f.run()
         except FindxSyntaxError as e:
-            warn(str(e))
+            warn('Error: ' + str(e))
             exit_status = 1
         except FindxRuntimeError as e:
-            warn(str(e))
+            warn('Error: ' + str(e))
             exit_status = 2
         except KeyboardInterrupt:
             exit_status = 128 + signal.SIGINT
