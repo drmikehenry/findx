@@ -3,6 +3,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import collections
 import os
 import sys
 import re
@@ -74,6 +75,9 @@ OPTIONS
   -help, --help         print this usage help and terminate
   -version, --version   print version of findx and terminate
   -show                 show command without executing it
+  -show-config          show current configuration settings
+  -show-config-defaults show default configuration settings
+  -show-config-var VAR  show current value of configuration variable VAR
   -root DIR             add arbitrary DIR to DIRLIST
   -x EXCLUDE            add EXCLUDE to list of exclusions
   -i INCLUDE            add INCLUDE to list of inclusions (disable exclusions
@@ -188,6 +192,118 @@ EXAMPLES
 # Just files with standard exclusions (fails with newline in filename).
   ffx | while read i; do Something; done
 
+CONFIGURING FINDX
+
+findx uses configuration variable to control its behavior.  Each variable has a
+value that is a list of zero or more strings generally delimited by whitespace
+(subject to the quoting rules described later).
+
+Variables are named in lower_case_separated_by_underscores.
+
+A "normal assignment" replaces the variable with the value given:
+
+  variable_name = value
+
+However, if the value begins with an "assignment mode" special character, it
+may be merged with the variable's previous value:
+
+  variable_name = +values to append
+  variable_name = ^values to prepend
+  variable_name = -values to remove
+
+Use the special character ``=`` to force normal assignment of arbitrary values:
+
+  variable_name = =+literal_value_starts_with_plus
+
+CONFIG FILE
+
+A configuration file consists of blank lines, comments, and variable
+assignments.  For example:
+
+  # This is a comment.
+  variable_name = first_element second_element third_element
+
+  # Consecutive indented lines are merged with the assignment line, with
+  # the intervening whitespace replaced by a single space:
+  variable_name = first_element
+    second_element
+    third_element
+
+  # To avoid the space, begin the continuation lines with ``+``:
+  variable_name = first_
+    +element second_
+    +element third_element
+
+Errors in a configuration file will prevent findx from running; however, it is
+not an error for a configuration file to be missing.  A file is read and parsed
+only when it is first needed.
+
+QUOTING RULES
+
+A run of backslashes is generally treated literally, but may at times be
+treated specially.  If the run is treated specially, each pair of backslashes
+in the run is treated as a single escaped backslash; then if an unpaired
+backslash remains, it escapes the character following the run.
+
+Inside single quotes, all characters are treated literally until the closing
+single quote.
+
+Inside double quotes, almost all characters are treated literally, but a run of
+backslashes is treated specially if followed by a double-quote.
+
+Outside of quotes, a run of backslashes is special if it precedes one of the
+following characters:
+
+    '  "  (whitespace)
+
+With future extensions, more characters may require quoting or escaping.  To
+future-proof your configuration files, quote anything other than the following
+characters that will never be special:
+
+    (letters) (digits) _ - / .
+
+Quote characters must be paired and must not cross line boundaries.
+
+SETTING CONFIGURATION VARIABLES
+
+Each variable has a default value built into findx.  This value may be modified
+or replaced by any of the following mechanisms taken in this order (later
+choices have higher precedence):
+
+- Configuration file(s)
+- Environment variable
+- Command-line switch
+
+For environment variables, the variable name is converted to uppercase and
+``FINDX_`` is prepended.  On the command line, the name's underscores are
+converted to hyphens and ``--`` is prepended.  For example, the variable
+``config_files`` would become ``FINDX_CONFIG_FILES`` as an environment variable
+and ``--config-files`` on the command line.  An assignment appending the file
+``new_config_file`` could be done any of the following ways::
+
+  # In a config file:
+  config_files = +new_config_file
+
+  # In an environment variable:
+  FINDX_CONFIG_FILES=+new_config_file
+
+  # On the command line:
+  --config-files +new_config_file
+
+CONFIGURATION VARIABLES
+
+- config_files = /global/config/file  ~/per/user/config/file
+
+  Configuration files to use in order of increasing priority.
+
+"""
+
+DEFAULT_CONFIG_TEXT = """\
+# findx default settings.
+
+config_files =
+    /etc/findx/config
+    ~/.config/findx/config
 """
 
 
@@ -200,11 +316,34 @@ def strepr(s):
     return repr(s).lstrip('u')
 
 
+def single_quoted(s):
+    if s == '':
+        return "''"
+    parts = ['' if p == '' else ("'%s'" % p) for p in s.split("'")]
+    return "\\'".join(parts)
+
+
+def double_quoted(s):
+    bslash = '\\'
+    bslash_count = 0
+    parts = []
+    for c in s:
+        if c == bslash:
+            bslash_count += 1
+        else:
+            if c == '"':
+                bslash_count = 2 * bslash_count + 1
+            parts.append(bslash * bslash_count + c)
+            bslash_count = 0
+    parts.append(bslash * bslash_count * 2)
+    return '"%s"' % (''.join(parts))
+
+
 def quoted(s):
     if "'" not in s:
-        return "'" + s + "'"
+        return single_quoted(s)
     else:
-        return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
+        return double_quoted(s)
 
 
 def quoted_join(args):
@@ -237,7 +376,7 @@ def optionally_quoted_join(args):
 def quoted_split(value):
     args = []
     quote = ''
-    saw_escape = False
+    bslash_count = 0
     this_arg = []
 
     def keep(c):
@@ -249,32 +388,42 @@ def quoted_split(value):
             this_arg[:] = []
 
     for c in value:
-        if saw_escape:
-            if quote and c not in ['"', '\\']:
-                keep('\\')
-            keep(c)
-            saw_escape = False
-        elif c == '\\':
-            if quote == "'":
-                keep(c)
-            else:
-                saw_escape = True
-        elif c == quote:
-            quote = ''
-        elif quote:
-            keep(c)
-        elif c in ["'", '"']:
-            quote = c
-            keep('')
-        elif c.isspace():
-            finish_arg()
+        if c == '\\':
+            bslash_count += 1
         else:
-            keep(c)
-    finish_arg()
-    if saw_escape:
-        raise ValueError('No escaped character in %s' % strepr(value))
+            if bslash_count:
+                if quote == "'":
+                    special = False
+                elif quote == '"':
+                    special = (c == '"')
+                else:
+                    special = (c.isspace() or c in ['"', "'"])
+                if special:
+                    keep('\\' * (bslash_count // 2))
+                    bslash_count = bslash_count % 2
+                else:
+                    keep('\\' * bslash_count)
+                    bslash_count = 0
+            if bslash_count:
+                keep(c)
+                bslash_count = 0
+            elif c == quote:
+                quote = ''
+            elif quote:
+                keep(c)
+            elif c in ['"', "'"]:
+                quote = c
+                # Keep an empty string to ensure we're in an arg.
+                keep('')
+            elif c.isspace():
+                finish_arg()
+            else:
+                keep(c)
+    if bslash_count:
+        keep('\\' * bslash_count)
     if quote:
         raise ValueError('No closing quotation in %s' % strepr(value))
+    finish_arg()
     return args
 
 
@@ -304,6 +453,10 @@ def joined_lines(lines):
 
 class FindxError(Exception):
     """The base exception class for all findx errors."""
+
+
+class FindxInternalError(FindxError):
+    """Indicates buggy code within findx."""
 
 
 class FindxSyntaxError(FindxError):
@@ -343,6 +496,33 @@ class PrintWithXargsError(FindxSyntaxError):
     def __init__(self):
         super(PrintWithXargsError, self).__init__(
             "Cannot mix '-print' with XARGS")
+
+
+class InvalidConfigLineError(FindxSyntaxError):
+    def __init__(self, source, line, reason):
+        super(InvalidConfigLineError, self).__init__(
+            'In %s for line %s: %s' % (
+                source, strepr(line), reason))
+
+
+class InvalidConfigVarError(FindxSyntaxError):
+    def __init__(self, source, var):
+        super(InvalidConfigVarError, self).__init__(
+            'In %s variable %s is invalid' % (
+                source, strepr(var)))
+
+
+class InvalidConfigValueError(FindxSyntaxError):
+    def __init__(self, source, var, reason):
+        super(InvalidConfigValueError, self).__init__(
+            'In %s for variable %s: %s' % (
+                source, strepr(var), reason))
+
+
+class ConfigFilesUnstableError(FindxSyntaxError):
+    def __init__(self):
+        super(ConfigFilesUnstableError, self).__init__(
+            "'config_files' setting does not stabilize")
 
 
 class InvalidDirectoryError(FindxRuntimeError):
@@ -396,7 +576,206 @@ def merge_find_xargs_status(find_status, xargs_status):
     return exit_status
 
 
+def parse_raw_value(raw_value):
+    if raw_value.startswith(('+', '-', '^', '=')):
+        op = raw_value[0]
+        raw_value = raw_value[1:]
+    else:
+        op = '='
+    value = quoted_split(raw_value)
+    return op, value
+
+
+class Settings(collections.MutableMapping):
+    def __init__(self, name):
+        self._name = name
+
+    def __setitem__(self, key, val):
+        raise ValueError('non-mutable Settings() class')
+
+    def __delitem__(self, key):
+        raise ValueError('non-mutable Settings() class')
+
+    @property
+    def name(self):
+        return self._name
+
+
+class CommandLineSettings(Settings):
+    def __getitem__(self, key):
+        return self._dict[key]
+
+    def __len__(self):
+        return len(self._dict)
+
+    def __iter__(self):
+        for var in self._dict:
+            yield var
+
+    def __setitem__(self, key, val):
+        self._dict[key] = val
+
+    def __delitem__(self, key):
+        del self._dict[key]
+
+    def __init__(self):
+        super(CommandLineSettings, self).__init__('[command line]')
+        self._dict = {}
+
+
+class EnvVarSettings(Settings):
+    _prefix = 'FINDX_'
+
+    def __getitem__(self, key):
+        env_var = self._prefix + key.upper()
+        return os.environ[env_var]
+
+    def __len__(self):
+        return len(list(self.__iter__()))
+
+    def __iter__(self):
+        for var in os.environ:
+            if var.startswith(self._prefix):
+                yield var[len(self._prefix):].lower()
+
+    def __init__(self):
+        super(EnvVarSettings, self).__init__('[Environment]')
+
+
+class TextSettings(Settings):
+    def __getitem__(self, key):
+        return self._dict[key]
+
+    def __len__(self):
+        return len(self._dict)
+
+    def __iter__(self):
+        for var in self._dict:
+            yield var
+
+    def __init__(self, name):
+        super(TextSettings, self).__init__(name)
+        self._dict = {}
+
+    def set_text(self, text):
+        for line in joined_lines(text.splitlines()):
+            leading_whitespace, rest = split_leading_whitespace(line)
+            if line.startswith('#') or not line:
+                # Comment or blank line.
+                pass
+            elif leading_whitespace:
+                raise InvalidConfigLineError(
+                    self.name, line, 'Unexpected indentation')
+            elif '=' in line:
+                var, value = line.split('=', 1)
+                var = var.rstrip()
+                value = value.lstrip()
+                if not var:
+                    raise InvalidConfigLineError(
+                        self.name, line, 'Missing variable name')
+                elif var in self._dict:
+                    raise InvalidConfigLineError(
+                        self.name, line, 'Duplicate assignment')
+                else:
+                    self._dict[var] = value
+            else:
+                raise InvalidConfigLineError(
+                    self.name, line, "Missing '='")
+
+
+class FileSettings(TextSettings):
+    def __init__(self, path):
+        super(FileSettings, self).__init__('config file %s' % strepr(path))
+        expanded_path = os.path.expanduser(path)
+        if os.path.exists(expanded_path):
+            with open(expanded_path, 'r') as f:
+                self.set_text(f.read())
+
+
+class Config(object):
+    def __init__(self, valid_vars):
+        self._command_line_settings = CommandLineSettings()
+        self._env_var_settings = EnvVarSettings()
+        self._default_settings = TextSettings('[Default Settings]')
+        self._default_settings.set_text(DEFAULT_CONFIG_TEXT)
+        self._all_settings_files = {}
+        self._config_files = []
+        self._config_files_stable = False
+        self._valid_vars = valid_vars
+
+    def _sources(self):
+        yield self._command_line_settings
+        yield self._env_var_settings
+        if not self._config_files_stable:
+            self._config_files_stable = True
+            for i in range(10):
+                config_files = self.get('config_files')
+                if config_files == self._config_files:
+                    break
+                self._config_files = config_files
+            else:
+                raise ConfigFilesUnstableError()
+        for config_file in self._config_files:
+            yield self._settings_file(config_file)
+        yield self._default_settings
+
+    def _settings_file(self, path):
+        if path not in self._all_settings_files:
+            settings = FileSettings(path)
+            for var, raw_value in settings.items():
+                if var not in self._valid_vars:
+                    raise InvalidConfigVarError(settings.name, var)
+                    try:
+                        op, value = parse_raw_value(raw_value)
+                    except ValueError as e:
+                        raise InvalidConfigValueError(settings.name, var, e)
+            self._all_settings_files[path] = settings
+        return self._all_settings_files[path]
+
+    def _merge_values(self, parent_value, op, value):
+        if op == '+':
+            merged_value = parent_value + value
+        elif op == '^':
+            merged_value = value + parent_value
+        elif op == '-':
+            merged_value = parent_value[:]
+            for v in value:
+                if v in merged_value:
+                    merged_value.remove(v)
+        else:
+            raise FindxInternalError('Invalid op %s' % strepr(op))
+        return merged_value
+
+    def _get(self, var, sources, op, value):
+        if op == '=':
+            return value[:]
+        for source in sources:
+            if var in source:
+                try:
+                    source_op, source_value = parse_raw_value(source[var])
+                except ValueError as e:
+                    raise InvalidConfigValueError(source.name, var, e)
+                parent_value = self._get(var, sources, source_op, source_value)
+                break
+        else:
+            parent_value = []
+        return self._merge_values(parent_value, op, value)
+
+    def get(self, var, op='+', value=[]):
+        return self._get(var, self._sources(), op, value)
+
+    def set(self, var, op, value):
+        list_value = self.get(var, op, value)
+        self._command_line_settings[var] = quoted_join(list_value)
+        if var == 'config_files':
+            self._config_files_stable = False
+
+
 class Findx(object):
+    VALID_VARS = """
+        config_files
+        """.split()
+
     OPTIONS_0 = []
     OPTIONS_1 = []
     OPTIONS_2 = []
@@ -559,7 +938,9 @@ class Findx(object):
         self.show = False
         self.show_help = False
         self.show_version = False
+        self.shown = False
         self.pipe_status = None
+        self.config = Config(self.VALID_VARS)
 
         self.check_xargs()
 
@@ -813,6 +1194,15 @@ class Findx(object):
     def parse_include_exclude(self, include_exclude):
         self.or_extend(include_exclude, self.get_term())
 
+    def switch_to_var(self, switch):
+        return switch.lstrip('-').replace('-', '_')
+
+    def _make_setting(self, var, value):
+        quoted_value = quoted_join(value)
+        if quoted_value:
+            quoted_value = ' ' + quoted_value
+        return '%s =%s' % (var, quoted_value)
+
     def parse_findx_args(self):
         arg = self.pop_arg()
         if arg in ['-help', '--help']:
@@ -821,6 +1211,17 @@ class Findx(object):
             self.show_version = True
         elif arg == '-show':
             self.show = True
+        elif arg == '-show-config':
+            for var in self.VALID_VARS:
+                print(self._make_setting(var, self.config.get(var)))
+            self.shown = True
+        elif arg == '-show-config-defaults':
+            print(DEFAULT_CONFIG_TEXT.strip())
+            self.shown = True
+        elif arg == '-show-config-var':
+            var = self.pop_arg()
+            print(self._make_setting(var, self.config.get(var)))
+            self.shown = True
         elif arg == '-root':
             self.dirs.append(self.pop_arg())
         elif arg == '-stdx':
@@ -849,6 +1250,16 @@ class Findx(object):
             self.post_path_options.extend(self.get_option_list())
         elif self.matches_dir(arg):
             self.dirs.append(arg)
+        elif arg.startswith('--'):
+            var = self.switch_to_var(arg[len('--'):])
+            if var not in self.VALID_VARS:
+                raise InvalidOptionError(arg)
+            raw_value = self.pop_arg()
+            try:
+                op, value = parse_raw_value(raw_value)
+            except ValueError as e:
+                raise InvalidConfigValueError('Command line', var, e)
+            self.config.set(var, op, value)
         else:
             self.push_arg(arg)
             self.expression.extend(self.get_expression())
@@ -926,7 +1337,7 @@ class Findx(object):
             if self.xargs_pipe_args:
                 s += ' | ' + ' '.join(self.xargs_pipe_args)
             print(s)
-        else:
+        elif not self.shown:
             for d in self.dirs:
                 if not os.path.isdir(d):
                     raise InvalidDirectoryError(d)
