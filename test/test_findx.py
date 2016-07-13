@@ -4,10 +4,179 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import unittest
+import textwrap
 import findx
 
 
+def make_text(s):
+    if s.startswith('\n'):
+        s = s[1:]
+    return textwrap.dedent(s)
+
+
+def make_lines(s):
+    return make_text(s).splitlines()
+
+
 class TestFindx(unittest.TestCase):
+
+    def test_quoted(self):
+        def s(s):
+            return s.strip()
+
+        self.assertEqual(findx.quoted(r''),
+                         s(r"""        ''  """))
+        self.assertEqual(findx.quoted(r'hello'),
+                         s(r"""        'hello'  """))
+        self.assertEqual(findx.quoted(r'hello there'),
+                         s(r"""        'hello there'  """))
+        self.assertEqual(findx.quoted(r'hello "Mike"'),
+                         s(r"""        'hello "Mike"'  """))
+        self.assertEqual(findx.quoted(r"hello I'm Mike"),
+                         s(r"""        "hello I'm Mike"  """))
+        self.assertEqual(findx.quoted(r"\Windows\system32"),
+                         s(r"""        '\Windows\system32'  """))
+        self.assertEqual(findx.quoted(r"\Program Files"),
+                         s(r"""        '\Program Files'  """))
+
+    def test_quote_required(self):
+        self.assertTrue(findx.quote_required(r''))
+        self.assertFalse(findx.quote_required(r'oneword'))
+        self.assertFalse(findx.quote_required(r'?with*punc.,but!no:space'))
+        self.assertTrue(findx.quote_required(r'two words'))
+        self.assertTrue(findx.quote_required(r'\backslash'))
+        self.assertTrue(findx.quote_required(r'"'))
+        self.assertTrue(findx.quote_required(r"'"))
+
+    def test_optionally_quoted(self):
+        def s(s):
+            return s.strip()
+
+        self.assertEqual(findx.optionally_quoted(r''),
+                         s(r"""                   ''  """))
+        self.assertEqual(findx.optionally_quoted(r'hello'),
+                         s(r"""                    hello   """))
+        self.assertEqual(findx.optionally_quoted(r'hello there'),
+                         s(r"""                   'hello there'  """))
+        self.assertEqual(findx.optionally_quoted(r'hello "Mike"'),
+                         s(r"""                   'hello "Mike"'  """))
+        self.assertEqual(findx.optionally_quoted(r"hello I'm Mike"),
+                         s(r"""                   "hello I'm Mike"  """))
+        self.assertEqual(findx.optionally_quoted(r"\Windows\system32"),
+                         s(r"""                   '\Windows\system32'  """))
+        self.assertEqual(findx.optionally_quoted(r"\Program Files"),
+                         s(r"""                   '\Program Files'  """))
+
+    def test_joined_lines_empty(self):
+        lines = list(findx.joined_lines(make_lines(
+            """
+            """)))
+        self.assertEqual(lines, make_lines(
+            """
+            """))
+
+    def test_joined_lines_simple(self):
+        lines = list(findx.joined_lines(make_lines(
+            """
+            line1
+            line2
+            """)))
+        self.assertEqual(lines, make_lines(
+            """
+            line1
+            line2
+            """))
+
+    def test_joined_lines_continuation(self):
+        lines = list(findx.joined_lines(make_lines(
+            """
+            line1=
+              more
+             continuation
+               lines
+            line2=
+              +even more
+
+              not continued
+            """)))
+        self.assertEqual(lines, make_lines(
+            """
+            line1= more continuation lines
+            line2=even more
+
+              not continued
+            """))
+
+    def test_joined_lines_unexpected_indent(self):
+        lines = list(findx.joined_lines(make_lines(
+            """
+            # Comment.
+
+              Unexpected_indent
+            """)))
+        self.assertEqual(lines, make_lines(
+            """
+            # Comment.
+
+              Unexpected_indent
+            """))
+
+    def test_optionally_quoted_join(self):
+        def s(s):
+            return s.strip()
+
+        def o_q_join(args):
+            return findx.optionally_quoted_join(args)
+
+        self.assertEqual(o_q_join([]),
+                         s(r"""            """))
+        self.assertEqual(o_q_join([r'']),
+                         s(r"""     ''  """))
+        self.assertEqual(o_q_join([r'hello']),
+                         s(r"""      hello  """))
+        self.assertEqual(o_q_join([r'hello', r'there']),
+                         s(r"""      hello there  """))
+        self.assertEqual(o_q_join([r'hello there', r"I'm Mike"]),
+                         s(r"""     'hello there' "I'm Mike"  """))
+
+    def test_quoted_split(self):
+        self.assertEqual(findx.quoted_split('one two'),
+                         ['one', 'two'])
+
+    def test_quoted_split_plain_escapes(self):
+        self.assertEqual(findx.quoted_split('one\\ two'),
+                         ['one two'])
+        self.assertEqual(findx.quoted_split('   one\\ two   '),
+                         ['one two'])
+        self.assertRaises(ValueError, findx.quoted_split, 'one\\ two\\')
+
+    def test_quoted_split_single_quotes(self):
+        self.assertEqual(findx.quoted_split("""'one two'"""),
+                         ['one two'])
+        self.assertEqual(findx.quoted_split("""one'  'two"""),
+                         ['one  two'])
+        self.assertEqual(findx.quoted_split("""one'  '"""),
+                         ['one  '])
+        self.assertEqual(findx.quoted_split("""'  'two"""),
+                         ['  two'])
+        self.assertRaises(ValueError, findx.quoted_split, "hello' there")
+
+    def test_quoted_split_double_quotes(self):
+        self.assertEqual(findx.quoted_split('''"one two"'''),
+                         ['one two'])
+        self.assertEqual(findx.quoted_split('''one"  "two'''),
+                         ['one  two'])
+        self.assertEqual(findx.quoted_split('''one"  "'''),
+                         ['one  '])
+        self.assertEqual(findx.quoted_split('''"  "two'''),
+                         ['  two'])
+        self.assertEqual(findx.quoted_split(r'''"\keep"'''),
+                         [r'\keep'])
+        self.assertEqual(findx.quoted_split(r'''"\\\d \\".'''),
+                         [r'\\d \.'])
+        self.assertEqual(findx.quoted_split(r'''"\""'''),
+                         [r'"'])
+        self.assertRaises(ValueError, findx.quoted_split, 'hello" there')
 
     def test_has_meta(self):
         f = findx.Findx()

@@ -190,9 +190,111 @@ EXAMPLES
 
 """
 
+
 def warn(message):
     print('findx: %s' % message, file=sys.stderr)
 
+
+def quoted(s):
+    if "'" not in s:
+        return "'" + s + "'"
+    else:
+        return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
+def quoted_join(args):
+    return ' '.join(quoted(arg) for arg in args)
+
+
+def quote_required(arg):
+    if arg == '':
+        required = True
+    else:
+        required = False
+        for c in arg:
+            if c.isspace() or c in ['\\', '"', "'"]:
+                required = True
+                break
+    return required
+
+
+def optionally_quoted(s):
+    if quote_required(s):
+        return quoted(s)
+    else:
+        return s
+
+
+def optionally_quoted_join(args):
+    return ' '.join(optionally_quoted(arg) for arg in args)
+
+
+def quoted_split(value):
+    args = []
+    quote = ''
+    saw_escape = False
+    this_arg = []
+
+    def keep(c):
+        this_arg.append(c)
+
+    def finish_arg():
+        if this_arg:
+            args.append(''.join(this_arg))
+            this_arg[:] = []
+
+    for c in value:
+        if saw_escape:
+            if quote and c not in ['"', '\\']:
+                keep('\\')
+            keep(c)
+            saw_escape = False
+        elif c == '\\':
+            if quote == "'":
+                keep(c)
+            else:
+                saw_escape = True
+        elif c == quote:
+            quote = ''
+        elif quote:
+            keep(c)
+        elif c in ["'", '"']:
+            quote = c
+            keep('')
+        elif c.isspace():
+            finish_arg()
+        else:
+            keep(c)
+    finish_arg()
+    if saw_escape:
+        raise ValueError('No escaped character in %s' % quoted(value))
+    if quote:
+        raise ValueError('No closing quotation in %s' % quoted(value))
+    return args
+
+
+def split_leading_whitespace(s):
+    rest = s.lstrip()
+    leading_whitespace = s[:-len(rest)]
+    return leading_whitespace, rest
+
+
+def joined_lines(lines):
+    current_line = None
+    for line in lines:
+        line = line.rstrip()
+        leading_whitespace, rest = split_leading_whitespace(line)
+        if current_line and leading_whitespace:
+            if rest.startswith('+'):
+                current_line += rest[1:]
+            else:
+                current_line += ' ' + rest
+        else:
+            if current_line is not None:
+                yield current_line
+            current_line = line
+    if current_line is not None:
+        yield current_line
 
 
 class FindxError(Exception):
