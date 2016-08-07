@@ -83,15 +83,18 @@ OPTIONS
   -i INCLUDE            add INCLUDE to list of inclusions (disable exclusions
                         by including everything via '-i *')
   -stdx                 setup standard exclusions
+  -ff                   find files following symlinks; short for 'type -f -L'
   -ffx                  find files with standard exclusions, following
-                        symlinks; shortcut for 'findx -stdx -type f -L'
-  -ffg                  grep through files; shortcut for
-                        'findx -ffx : grep -H --color=auto [ :'
+                        symlinks; short for '-stdx -ff'
+  -ffg                  grep through files; short for '-ffx -grep'
   :                     switch to XARGS MODE; require subsequent xarg
   ::                    permanent XARGS MODE; require subsequent xarg
   [                     switch to FINDX MODE from FINDX MODE or XARGS MODE
   ]                     switch to XARGS MODE
   ]]                    switch to XARGS MODE permanently
+  -grep                 short for ': <grep> <grep_args> [ :' where
+                        <grep> and <grep_args> come from the variables
+                        'grep_path' and '<grep_style>_grep_args'
 
 Note: FINDX MODE is active at start.  The '[' option does not necessitate ']'.
 A bare '[' may not be used as an XARG unless XARGS MODE has been made
@@ -314,6 +317,23 @@ xargs_path = gnuxargs xargs
 
 # Style of xargs utility: probe, gnu, bsd, posix
 xargs_style = probe
+
+# Names and/or absolute paths for the ``grep`` utility.  The first-found
+# choice will be used (must not be empty).
+grep_path = gnugrep grep
+
+# Style of grep utility: probe, gnu, bsd, posix
+grep_style = probe
+
+# Extra grep arguments for use when grep_style = gnu.
+gnu_grep_args = '-H' '--color=auto'
+
+# Extra grep arguments for use when grep_style = bsd.
+bsd_grep_args =
+
+# Extra grep arguments for use when grep_style = posix.
+posix_grep_args =
+
 """
 
 
@@ -1041,6 +1061,13 @@ class Findx(object):
             style = self.probe_gnu_style(find_tool)
         return style
 
+    def resolve_grep_style(self, grep_tool):
+        choices = ['probe', 'gnu', 'bsd', 'posix']
+        style = self.get_choice_var('grep_style', choices)
+        if style == 'probe':
+            style = self.probe_gnu_style(grep_tool)
+        return style
+
     def has_meta(self, s):
         for c in self.META_CHARS:
             if c in s:
@@ -1308,11 +1335,17 @@ class Findx(object):
             self.push_arg_list(
                 ['-x', '(', '-type', 'd', '-iname', self.STDX_DIR_GLOB, '-o',
                  '-not', '-type', 'd', '-iname', self.STDX_FILE_GLOB, ')'])
+        elif arg == '-ff':
+            self.push_arg_list(['-L', '-type', 'f'])
         elif arg == '-ffx':
-            self.push_arg_list(['-stdx', '-L', '-type', 'f'])
+            self.push_arg_list(['-stdx', '-ff'])
         elif arg == '-ffg':
-            self.push_arg_list(['-ffx', ':', 'grep', '-H', '--color=auto',
-                                '[', ':'])
+            self.push_arg_list(['-ffx', '-grep'])
+        elif arg == '-grep':
+            grep_tool = self.resolve_path_var('grep_path')
+            grep_style = self.resolve_grep_style(grep_tool)
+            grep_args = self.get_var(grep_style + '_grep_args')
+            self.push_arg_list([':', grep_tool] + grep_args + ['[', ':'])
         elif arg in ['-e', '-x']:
             self.parse_include_exclude(self.excludes)
         elif arg == '-i':
