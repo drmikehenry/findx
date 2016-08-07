@@ -1030,14 +1030,15 @@ class Findx(object):
         return locations[0]
 
     def run_args(self, args):
-        try:
-            p = Popen(args, stdout=PIPE, stderr=STDOUT)
-            output = p.communicate()[0]
-            retcode = p.poll()
-        except OSError:
-            retcode = 1
-            output = b''
-        return retcode, output
+        with open(os.devnull) as stdin:
+            try:
+                p = Popen(args, stdin=stdin, stdout=PIPE, stderr=STDOUT)
+                output = p.communicate()[0]
+                retcode = p.poll()
+            except OSError:
+                retcode = 1
+                output = b''
+            return retcode, output
 
     def probe_gnu_style(self, tool):
         retcode, output = self.run_args([tool, '--version'])
