@@ -2,6 +2,30 @@
 History
 *******
 
+Version 0.9.10
+==============
+
+- Add configuration variables settable via configuration file, environment
+  variables, or command line.  Display values of variables via new switches
+  ``-show-var VAR``, ``-show-vars``, and ``-show-defaults``.
+
+- Allow for configurable location and type of the main utilities ``find``,
+  ``xargs``, and ``grep``.
+
+- Add ``-ff`` switch for "find files following symlinks"; define ``-ffx`` as
+  ``-stdx -ff``.
+
+- Add ``-grep`` switch to imply ``: <grep> <grep_args> [ :``, where ``<grep>``
+  is the configuration location for the grep utility and ``<grep_args>`` depends
+  in a configurable way on the style of the grep utility being used.
+
+- Stop requiring root paths to be directories.  POSIX allows roots to be files
+  as well.  Require only that a root exist.  Also, relax the restriction that a
+  path must not have a metacharacter to be considered a root in the absence of
+  ``-root``.  Now it is sufficient for the path to exist as-is.  This allows
+  use of shell globbing without worrying whether the globbed paths have
+  metacharacters in them.
+
 Version 0.9.9
 =============
 
