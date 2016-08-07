@@ -82,7 +82,11 @@ OPTIONS
   -x EXCLUDE            add EXCLUDE to list of exclusions
   -i INCLUDE            add INCLUDE to list of inclusions (disable exclusions
                         by including everything via '-i *')
-  -stdx                 setup standard exclusions
+  -stdxf                use standard exclusions for files (configured by
+                        the 'stdxf' variable)
+  -stdxd                use standard exclusions for directories (configured
+                        by the 'stdxd' variable)
+  -stdx                 use standard exclusions; short for '-stdxd -stdxf'
   -ff                   find files following symlinks; short for 'type -f -L'
   -ffx                  find files with standard exclusions, following
                         symlinks; short for '-stdx -ff'
@@ -334,6 +338,20 @@ bsd_grep_args =
 # Extra grep arguments for use when grep_style = posix.
 posix_grep_args =
 
+# Directory globs excluded by ``-stdxd``.
+stdxd =
+    .svn .git .bzr .hg .undo build *export pkgexp
+    bak *.egg-info *.egg
+
+# File globs excluded by ``-stdxf``.
+stdxf =
+    *.bak *~ *.tmp
+    *.o *.a *.so *.ds *.os *.sbr *.pch *.pdb *.pyc *.pyo
+    *.zip *.tar *.gz *.bz2
+    *.bin *.elf *.exe
+    *.bmp *.ico *.gif *.jpg *.png
+    *.pdf
+    .*.sw? tags
 """
 
 
@@ -933,46 +951,6 @@ class Findx(object):
 
     META_PAIRS = '[]{}'
 
-    STDX_DIR_GLOB = '|'.join("""
-        .svn
-        .git
-        .bzr
-        .hg
-        .undo
-        build
-        *export
-        pkgexp
-        bak
-        *.egg-info
-        *.egg
-        """.split())
-
-    STDX_FILE_GLOB = '|'.join("""
-        .*.sw?
-        *.o
-        *.a
-        *.so
-        *.ds
-        *.os
-        *.sbr
-        *.pch
-        *.pdb
-        *.pyc
-        *.pyo
-        *.gz
-        *.bin
-        *.elf
-        *.exe
-        *.zip
-        *.bmp
-        *.ico
-        *.gif
-        *.jpg
-        *.png
-        *.pdf
-        tags
-        """.split())
-
     def __init__(self):
         self.pre_path_options = []
         self.post_path_options = []
@@ -995,6 +973,8 @@ class Findx(object):
         self.shown = False
         self.pipe_status = None
         self.config = Config(VALID_VARS)
+        self.stdxd = False
+        self.stdxf = False
 
     def get_var(self, var):
         return self.config.get(var)
@@ -1295,7 +1275,7 @@ class Findx(object):
         return expr
 
     def or_extend(self, base, extension):
-        if base:
+        if base and extension:
             base.append('-o')
         base.extend(extension)
 
@@ -1333,9 +1313,11 @@ class Findx(object):
         elif arg == '-root':
             self.roots.append(self.pop_arg())
         elif arg == '-stdx':
-            self.push_arg_list(
-                ['-x', '(', '-type', 'd', '-iname', self.STDX_DIR_GLOB, '-o',
-                 '-not', '-type', 'd', '-iname', self.STDX_FILE_GLOB, ')'])
+            self.push_arg_list(['-stdxd', '-stdxf'])
+        elif arg == '-stdxd':
+            self.stdxd = True
+        elif arg == '-stdxf':
+            self.stdxf = True
         elif arg == '-ff':
             self.push_arg_list(['-L', '-type', 'f'])
         elif arg == '-ffx':
@@ -1354,6 +1336,8 @@ class Findx(object):
                 self.pop_arg()
                 self.includes = []
                 self.excludes = []
+                self.stdxd = False
+                self.stdxf = False
             else:
                 self.parse_include_exclude(self.includes)
         elif arg in self.PRE_PATH_OPTIONS:
@@ -1377,6 +1361,14 @@ class Findx(object):
         else:
             self.push_arg(arg)
             self.expression.extend(self.get_expression())
+
+    def iname_globs(self, globs):
+        expr = []
+        for g in globs:
+            expr.extend(self.split_glob(g))
+        if expr:
+            expr = self.distribute_option('-iname', expr)
+        return expr
 
     def parse_command_line(self, args):
         self.args = list(args)
@@ -1419,6 +1411,19 @@ class Findx(object):
             self.pre_path_options +
             self.roots +
             self.post_path_options)
+
+        std_excludes = []
+        if self.stdxd:
+            expr = self.iname_globs(self.get_var('stdxd'))
+            if expr:
+                self.or_extend(std_excludes, ['-type', 'd'] + expr)
+        if self.stdxf:
+            expr = self.iname_globs(self.get_var('stdxf'))
+            if expr:
+                self.or_extend(std_excludes, ['-not', '-type', 'd'] + expr)
+        self.or_extend(std_excludes, self.excludes)
+        self.excludes = std_excludes
+
         if self.excludes:
             self.find_pipe_args.extend(['('] + self.excludes + [')'])
             if self.includes:

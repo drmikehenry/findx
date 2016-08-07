@@ -26,6 +26,12 @@ Version 0.9.10
   use of shell globbing without worrying whether the globbed paths have
   metacharacters in them.
 
+- Decompose ``-stdx`` into ``-stdxd`` (for directories) and ``-stdxf`` (for
+  files).
+
+- Define variables ``stdxd`` and ``stdxf`` for configuring the globs to exclude
+  when the corresponding exclusions are active.
+
 Version 0.9.9
 =============
 
