@@ -292,18 +292,25 @@ and ``--config-files`` on the command line.  An assignment appending the file
 
 CONFIGURATION VARIABLES
 
-- config_files = /global/config/file  ~/per/user/config/file
-
+config_files = /etc/findx/config ~/.config/findx/config
   Configuration files to use in order of increasing priority.
+
+find_path = find
+  Names and/or absolute paths for the ``find`` utility.  The first-found
+  choice will be used (must not be empty).
 
 """
 
 DEFAULT_CONFIG_TEXT = """\
 # findx default settings.
 
+# List of locations for configuration files.
 config_files =
     /etc/findx/config
     ~/.config/findx/config
+
+# Names and/or absolute paths for the ``find`` utility.
+find_path = gnufind find
 """
 
 
@@ -517,6 +524,13 @@ class InvalidConfigValueError(FindxSyntaxError):
         super(InvalidConfigValueError, self).__init__(
             'In %s for variable %s: %s' % (
                 source, strepr(var), reason))
+
+
+class InvalidEmptyConfigVarError(FindxSyntaxError):
+    def __init__(self, var):
+        super(InvalidEmptyConfigVarError, self).__init__(
+            'Variable %s must not be empty' % (
+                strepr(var)))
 
 
 class ConfigFilesUnstableError(FindxSyntaxError):
@@ -774,6 +788,7 @@ class Config(object):
 class Findx(object):
     VALID_VARS = """
         config_files
+        find_path
         """.split()
 
     OPTIONS_0 = []
@@ -943,6 +958,20 @@ class Findx(object):
         self.config = Config(self.VALID_VARS)
 
         self.check_xargs()
+
+    def expand_path_var(self, path_var):
+        locations = [os.path.expanduser(p) for p in self.config.get(path_var)]
+        return locations
+
+    def resolve_path_var(self, path_var):
+        locations = self.expand_path_var(path_var)
+        for tool in locations:
+            if distutils.spawn.find_executable(tool):
+                return tool
+        # Not found; fall back to first configured location.
+        if locations:
+            return locations[0]
+        raise InvalidEmptyConfigVarError(path_var)
 
     def check_xargs(self):
         try:
@@ -1298,7 +1327,7 @@ class Findx(object):
             self.dirs.append('.')
 
         self.find_pipe_args = (
-            ['find'] +
+            [self.resolve_path_var('find_path')] +
             self.pre_path_options +
             self.dirs +
             self.post_path_options)
