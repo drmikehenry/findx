@@ -75,9 +75,9 @@ OPTIONS
   -help, --help         print this usage help and terminate
   -version, --version   print version of findx and terminate
   -show                 show command without executing it
-  -show-config          show current configuration settings
-  -show-config-defaults show default configuration settings
-  -show-config-var VAR  show current value of configuration variable VAR
+  -show-var VAR         show current value of variable VAR
+  -show-vars            show values of all variables
+  -show-defaults        show default values of all variables
   -root DIR             add arbitrary DIR to DIRLIST
   -x EXCLUDE            add EXCLUDE to list of exclusions
   -i INCLUDE            add INCLUDE to list of inclusions (disable exclusions
@@ -292,26 +292,36 @@ and ``--config-files`` on the command line.  An assignment appending the file
 
 CONFIGURATION VARIABLES
 
-config_files = /etc/findx/config ~/.config/findx/config
-  Configuration files to use in order of increasing priority.
-
-find_path = find
-  Names and/or absolute paths for the ``find`` utility.  The first-found
-  choice will be used (must not be empty).
-
+__DEFAULT_CONFIG_TEXT__
 """
 
 DEFAULT_CONFIG_TEXT = """\
-# findx default settings.
-
-# List of locations for configuration files.
+# Configuration files to use in order of increasing priority.
 config_files =
     /etc/findx/config
     ~/.config/findx/config
 
-# Names and/or absolute paths for the ``find`` utility.
+# Names and/or absolute paths for the ``find`` utility.  The first-found
+# choice will be used (must not be empty).
 find_path = gnufind find
+
+# Style of find utility: probe, gnu, bsd, posix
+find_style = probe
+
+# Names and/or absolute paths for the ``xargs`` utility.  The first-found
+# choice will be used (must not be empty).
+xargs_path = gnuxargs xargs
+
+# Style of xargs utility: probe, gnu, bsd, posix
+xargs_style = probe
 """
+
+
+VALID_VARS = re.findall(
+    r'^\w+', DEFAULT_CONFIG_TEXT, re.MULTILINE)
+
+
+HELP_TEXT = HELP_TEXT.replace('__DEFAULT_CONFIG_TEXT__', DEFAULT_CONFIG_TEXT)
 
 
 def warn(message):
@@ -531,6 +541,20 @@ class InvalidEmptyConfigVarError(FindxSyntaxError):
         super(InvalidEmptyConfigVarError, self).__init__(
             'Variable %s must not be empty' % (
                 strepr(var)))
+
+
+class InvalidScalarConfigVarError(FindxSyntaxError):
+    def __init__(self, var):
+        super(InvalidScalarConfigVarError, self).__init__(
+            'Variable %s must be a single value' % (
+                strepr(var)))
+
+
+class InvalidChoiceConfigVarError(FindxSyntaxError):
+    def __init__(self, var, choices):
+        super(InvalidChoiceConfigVarError, self).__init__(
+            'Variable %s must be one of: %s' % (
+                strepr(var), ', '.join(choices)))
 
 
 class ConfigFilesUnstableError(FindxSyntaxError):
@@ -786,11 +810,6 @@ class Config(object):
 
 
 class Findx(object):
-    VALID_VARS = """
-        config_files
-        find_path
-        """.split()
-
     OPTIONS_0 = []
     OPTIONS_1 = []
     OPTIONS_2 = []
@@ -955,13 +974,32 @@ class Findx(object):
         self.show_version = False
         self.shown = False
         self.pipe_status = None
-        self.config = Config(self.VALID_VARS)
+        self.config = Config(VALID_VARS)
 
-        self.check_xargs()
+    def get_var(self, var):
+        return self.config.get(var)
+
+    def get_non_empty_var(self, var):
+        value = self.get_var(var)
+        if not value:
+            raise InvalidEmptyConfigVarError(var)
+        return value
+
+    def get_scalar_var(self, var):
+        value = self.get_var(var)
+        if len(value) != 1:
+            raise InvalidScalarConfigVarError(var)
+        return value[0]
+
+    def get_choice_var(self, var, choices):
+        value = self.get_scalar_var(var)
+        if value not in choices:
+            raise InvalidChoiceConfigVarError(var, choices)
+        return value
 
     def expand_path_var(self, path_var):
-        locations = [os.path.expanduser(p) for p in self.config.get(path_var)]
-        return locations
+        locations = self.get_non_empty_var(path_var)
+        return [os.path.expanduser(p) for p in locations]
 
     def resolve_path_var(self, path_var):
         locations = self.expand_path_var(path_var)
@@ -969,26 +1007,39 @@ class Findx(object):
             if distutils.spawn.find_executable(tool):
                 return tool
         # Not found; fall back to first configured location.
-        if locations:
-            return locations[0]
-        raise InvalidEmptyConfigVarError(path_var)
+        return locations[0]
 
-    def check_xargs(self):
+    def run_args(self, args):
         try:
-            p = Popen(['xargs', '--version'], stdout=PIPE, stderr=STDOUT)
+            p = Popen(args, stdout=PIPE, stderr=STDOUT)
             output = p.communicate()[0]
             retcode = p.poll()
         except OSError:
             retcode = 1
             output = b''
+        return retcode, output
 
-        # If retcode indicates success (implying --version is accepted), we
-        # probably already know it's GNU xargs, but let's check and make
-        # sure.
+    def probe_gnu_style(self, tool):
+        retcode, output = self.run_args([tool, '--version'])
         if retcode == 0 and b'GNU' in output:
-            self.is_gnu_xargs = True
+            style = 'gnu'
         else:
-            self.is_gnu_xargs = False
+            style = 'posix'
+        return style
+
+    def resolve_xargs_style(self, xargs_tool):
+        choices = ['probe', 'gnu', 'bsd', 'posix']
+        style = self.get_choice_var('xargs_style', choices)
+        if style == 'probe':
+            style = self.probe_gnu_style(xargs_tool)
+        return style
+
+    def resolve_find_style(self, find_tool):
+        choices = ['probe', 'gnu', 'bsd', 'posix']
+        style = self.get_choice_var('find_style', choices)
+        if style == 'probe':
+            style = self.probe_gnu_style(find_tool)
+        return style
 
     def has_meta(self, s):
         for c in self.META_CHARS:
@@ -1240,16 +1291,16 @@ class Findx(object):
             self.show_version = True
         elif arg == '-show':
             self.show = True
-        elif arg == '-show-config':
-            for var in self.VALID_VARS:
-                print(self._make_setting(var, self.config.get(var)))
-            self.shown = True
-        elif arg == '-show-config-defaults':
-            print(DEFAULT_CONFIG_TEXT.strip())
-            self.shown = True
-        elif arg == '-show-config-var':
+        elif arg == '-show-var':
             var = self.pop_arg()
             print(self._make_setting(var, self.config.get(var)))
+            self.shown = True
+        elif arg == '-show-vars':
+            for var in VALID_VARS:
+                print(self._make_setting(var, self.config.get(var)))
+            self.shown = True
+        elif arg == '-show-defaults':
+            print(DEFAULT_CONFIG_TEXT.strip())
             self.shown = True
         elif arg == '-root':
             self.dirs.append(self.pop_arg())
@@ -1281,7 +1332,7 @@ class Findx(object):
             self.dirs.append(arg)
         elif arg.startswith('--'):
             var = self.switch_to_var(arg[len('--'):])
-            if var not in self.VALID_VARS:
+            if var not in VALID_VARS:
                 raise InvalidOptionError(arg)
             raw_value = self.pop_arg()
             try:
@@ -1326,8 +1377,11 @@ class Findx(object):
         if not self.dirs:
             self.dirs.append('.')
 
+        find_tool = self.resolve_path_var('find_path')
+        find_style = self.resolve_find_style(find_tool)
+        have_print_zero = (find_style in ['gnu', 'bsd'])
         self.find_pipe_args = (
-            [self.resolve_path_var('find_path')] +
+            [find_tool] +
             self.pre_path_options +
             self.dirs +
             self.post_path_options)
@@ -1341,18 +1395,23 @@ class Findx(object):
             self.expression.insert(0, '(')
             self.expression.append(')')
         self.find_pipe_args.extend(self.expression)
-        if not self.saw_action:
-            if self.xargs:
-                self.find_pipe_args.append('-print0')
-            elif self.excludes:
-                self.find_pipe_args.append('-print')
+        need_print = not self.saw_action and (self.xargs or self.excludes)
+        print_action = '-print'
         if self.xargs:
-            self.xargs_pipe_args = ['xargs', '-0']
-            if self.is_gnu_xargs:
+            xargs_tool = self.resolve_path_var('xargs_path')
+            xargs_style = self.resolve_xargs_style(xargs_tool)
+            self.xargs_pipe_args = [xargs_tool]
+            have_dash_zero = (xargs_style in ['gnu', 'bsd'])
+            if have_dash_zero and have_print_zero:
+                self.xargs_pipe_args.append('-0')
+                print_action = '-print0'
+            if xargs_style == 'gnu':
                 self.xargs_pipe_args.append('--no-run-if-empty')
             self.xargs_pipe_args.extend(self.xargs)
         else:
             self.xargs_pipe_args = []
+        if need_print:
+            self.find_pipe_args.append(print_action)
 
     def run(self):
         self.pipe_status = None
