@@ -279,31 +279,31 @@ class TestFindx(unittest.TestCase):
         f = findx.Findx()
         f.parse_command_line(''.split())
         self.assertEqual(f.expression, ''.split())
-        self.assertEqual(f.dirs, '.'.split())
+        self.assertEqual(f.roots, '.'.split())
 
     def test_one_dir(self):
         f = findx.Findx()
         f.parse_command_line('someDir'.split())
         self.assertEqual(f.expression, ''.split())
-        self.assertEqual(f.dirs, 'someDir'.split())
+        self.assertEqual(f.roots, 'someDir'.split())
 
     def test_root_dir(self):
         f = findx.Findx()
         f.parse_command_line('-root someRoot'.split())
         self.assertEqual(f.expression, ''.split())
-        self.assertEqual(f.dirs, 'someRoot'.split())
+        self.assertEqual(f.roots, 'someRoot'.split())
 
     def test_late_path(self):
         f = findx.Findx()
         f.parse_command_line('-print somePath anotherPath'.split())
-        self.assertEqual(f.dirs, 'somePath anotherPath'.split())
+        self.assertEqual(f.roots, 'somePath anotherPath'.split())
         self.assertEqual(f.expression, '( -print )'.split())
 
     def test_pre_post_path_options(self):
         f = findx.Findx()
         f.parse_command_line('-print somePath -L anotherPath -depth'.split())
         self.assertEqual(f.pre_path_options, '-L'.split())
-        self.assertEqual(f.dirs, 'somePath anotherPath'.split())
+        self.assertEqual(f.roots, 'somePath anotherPath'.split())
         self.assertEqual(f.post_path_options, '-depth'.split())
         self.assertEqual(f.expression, '( -print )'.split())
 
@@ -312,10 +312,15 @@ class TestFindx(unittest.TestCase):
         f.parse_command_line('-type f -a -print0'.split())
         self.assertEqual(f.expression, '( -type f -a -print0 )'.split())
 
-    def test_glob(self):
+    def test_glob_name(self):
         f = findx.Findx()
         f.parse_command_line('*.c'.split())
         self.assertEqual(f.expression, '( -name *.c )'.split())
+
+    def test_glob_path(self):
+        f = findx.Findx()
+        f.parse_command_line('*/*.c'.split())
+        self.assertEqual(f.expression, '( -path */*.c )'.split())
 
     def test_exclude(self):
         f = findx.Findx()

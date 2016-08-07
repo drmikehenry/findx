@@ -583,10 +583,10 @@ class ConfigFilesUnstableError(FindxSyntaxError):
             "'config_files' setting does not stabilize")
 
 
-class InvalidDirectoryError(FindxRuntimeError):
-    def __init__(self, directory):
-        super(InvalidDirectoryError, self).__init__(
-            'Invalid directory %s' % strepr(directory))
+class InvalidRootError(FindxRuntimeError):
+    def __init__(self, root):
+        super(InvalidRootError, self).__init__(
+            'Invalid root path %s' % strepr(root))
 
 
 class ExecutableNotFoundError(FindxRuntimeError):
@@ -976,7 +976,7 @@ class Findx(object):
     def __init__(self):
         self.pre_path_options = []
         self.post_path_options = []
-        self.dirs = []
+        self.roots = []
         self.excludes = []
         self.includes = []
         self.saw_action = False
@@ -1079,10 +1079,10 @@ class Findx(object):
                     return True
         return False
 
-    def matches_dir(self, s):
-        return (not self.has_meta(s) and
-                s not in self.RESERVED_WORDS and
-                not s.startswith('-'))
+    def matches_root(self, s):
+        return (s not in self.RESERVED_WORDS and
+                not s.startswith('-') and
+                (not self.has_meta(s) or os.path.exists(s)))
 
     def push_arg(self, arg):
         self.args.insert(0, arg)
@@ -1255,7 +1255,7 @@ class Findx(object):
         elif arg in self.OPTIONS:
             term = self.get_option_list()
         elif self.has_meta(arg):
-            term = ['-name', self.pop_arg()]
+            term = ['-path' if '/' in arg else '-name', self.pop_arg()]
         else:
             term = []
         if term:
@@ -1330,7 +1330,7 @@ class Findx(object):
             print(DEFAULT_CONFIG_TEXT.strip())
             self.shown = True
         elif arg == '-root':
-            self.dirs.append(self.pop_arg())
+            self.roots.append(self.pop_arg())
         elif arg == '-stdx':
             self.push_arg_list(
                 ['-x', '(', '-type', 'd', '-iname', self.STDX_DIR_GLOB, '-o',
@@ -1361,8 +1361,8 @@ class Findx(object):
         elif arg in self.POST_PATH_OPTIONS:
             self.push_arg(arg)
             self.post_path_options.extend(self.get_option_list())
-        elif self.matches_dir(arg):
-            self.dirs.append(arg)
+        elif self.matches_root(arg):
+            self.roots.append(arg)
         elif arg.startswith('--'):
             var = self.switch_to_var(arg[len('--'):])
             if var not in VALID_VARS:
@@ -1407,8 +1407,8 @@ class Findx(object):
         if self.saw_print and self.xargs:
             raise PrintWithXargsError()
 
-        if not self.dirs:
-            self.dirs.append('.')
+        if not self.roots:
+            self.roots.append('.')
 
         find_tool = self.resolve_path_var('find_path')
         find_style = self.resolve_find_style(find_tool)
@@ -1416,7 +1416,7 @@ class Findx(object):
         self.find_pipe_args = (
             [find_tool] +
             self.pre_path_options +
-            self.dirs +
+            self.roots +
             self.post_path_options)
         if self.excludes:
             self.find_pipe_args.extend(['('] + self.excludes + [')'])
@@ -1459,9 +1459,9 @@ class Findx(object):
                 s += ' | ' + ' '.join(self.xargs_pipe_args)
             print(s)
         elif not self.shown:
-            for d in self.dirs:
-                if not os.path.isdir(d):
-                    raise InvalidDirectoryError(d)
+            for d in self.roots:
+                if not os.path.exists(d):
+                    raise InvalidRootError(d)
             find_abs_path = must_find_executable(self.find_pipe_args[0])
             if self.xargs_pipe_args:
                 xargs_abs_path = must_find_executable(self.xargs_pipe_args[0])
