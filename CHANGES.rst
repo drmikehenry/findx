@@ -2,6 +2,13 @@
 History
 *******
 
+Version 0.9.11
+==============
+
+- If probed tools aren't 'gnu', fall back to 'bsd' instead of 'posix' as a
+  better default (at least until there is better probing logic on BSD).
+  Add ``-H --color=auto`` into bsd_grep_args.
+
 Version 0.9.10
 ==============
 

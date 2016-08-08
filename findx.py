@@ -12,7 +12,7 @@ import signal
 import distutils.spawn
 from subprocess import Popen, STDOUT, PIPE
 
-__version__ = '0.9.10'
+__version__ = '0.9.11'
 
 HELP_TEXT = """\
 Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
@@ -333,7 +333,7 @@ grep_style = probe
 gnu_grep_args = '-H' '--color=auto'
 
 # Extra grep arguments for use when grep_style = bsd.
-bsd_grep_args =
+bsd_grep_args = '-H' '--color=auto'
 
 # Extra grep arguments for use when grep_style = posix.
 posix_grep_args =
@@ -1025,7 +1025,7 @@ class Findx(object):
         if retcode == 0 and b'GNU' in output:
             style = 'gnu'
         else:
-            style = 'posix'
+            style = 'bsd'
         return style
 
     def resolve_xargs_style(self, xargs_tool):
