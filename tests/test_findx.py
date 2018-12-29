@@ -3,8 +3,9 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import unittest
 import textwrap
+import unittest
+
 import findx
 
 
@@ -19,87 +20,131 @@ def make_lines(s):
 
 
 class TestFindx(unittest.TestCase):
-
     def test_single_quoted(self):
         def s(s):
             return s.strip()
 
-        self.assertEqual(findx.single_quoted(r''),
-                         s(r"""               ''  """))
-        self.assertEqual(findx.single_quoted(r'hello'),
-                         s(r"""               'hello'  """))
-        self.assertEqual(findx.single_quoted(r'hello there'),
-                         s(r"""               'hello there'  """))
-        self.assertEqual(findx.single_quoted(r'hello "Mike"'),
-                         s(r"""               'hello "Mike"'  """))
-        self.assertEqual(findx.single_quoted(r"hello I'm Mike"),
-                         s(r"""               'hello I'\''m Mike'  """))
-        self.assertEqual(findx.single_quoted(r"\Windows\system32"),
-                         s(r"""               '\Windows\system32'  """))
-        self.assertEqual(findx.single_quoted(r"\Program Files"),
-                         s(r"""               '\Program Files'  """))
-        self.assertEqual(findx.single_quoted(r"'"),
-                         s(r"""               \'  """))
-        self.assertEqual(findx.single_quoted(r"''"),
-                         s(r"""               \'\'  """))
-        self.assertEqual(findx.single_quoted(r"'two''words'"),
-                         s(r"""               \''two'\'\''words'\'  """))
+        self.assertEqual(
+            findx.single_quoted(r''), s(r"""               ''  """)
+        )
+        self.assertEqual(
+            findx.single_quoted(r'hello'), s(r"""               'hello'  """)
+        )
+        self.assertEqual(
+            findx.single_quoted(r'hello there'),
+            s(r"""               'hello there'  """),
+        )
+        self.assertEqual(
+            findx.single_quoted(r'hello "Mike"'),
+            s(r"""               'hello "Mike"'  """),
+        )
+        self.assertEqual(
+            findx.single_quoted(r"hello I'm Mike"),
+            s(r"""               'hello I'\''m Mike'  """),
+        )
+        self.assertEqual(
+            findx.single_quoted(r'\Windows\system32'),
+            s(r"""               '\Windows\system32'  """),
+        )
+        self.assertEqual(
+            findx.single_quoted(r'\Program Files'),
+            s(r"""               '\Program Files'  """),
+        )
+        self.assertEqual(
+            findx.single_quoted(r"'"), s(r"""               \'  """)
+        )
+        self.assertEqual(
+            findx.single_quoted(r"''"), s(r"""               \'\'  """)
+        )
+        self.assertEqual(
+            findx.single_quoted(r"'two''words'"),
+            s(r"""               \''two'\'\''words'\'  """),
+        )
 
     def test_double_quoted(self):
         def s(s):
             return s.strip()
 
-        self.assertEqual(findx.double_quoted(r''),
-                         s(r'''               ""  '''))
-        self.assertEqual(findx.double_quoted(r'hello'),
-                         s(r'''               "hello"  '''))
-        self.assertEqual(findx.double_quoted(r'hello there'),
-                         s(r'''               "hello there"  '''))
-        self.assertEqual(findx.double_quoted(r'hello "Mike"'),
-                         s(r'''               "hello \"Mike\""  '''))
-        self.assertEqual(findx.double_quoted(r'''hello I'm Mike'''),
-                         s(r'''                 "hello I'm Mike"  '''))
-        self.assertEqual(findx.double_quoted(r'''\Windows\system32'''),
-                         s(r'''                 "\Windows\system32"  '''))
-        self.assertEqual(findx.double_quoted(r'''\Program Files'''),
-                         s(r'''                 "\Program Files"  '''))
-        self.assertEqual(findx.double_quoted(r"'"),
-                         s(r'''               "'"  '''))
-        self.assertEqual(findx.double_quoted(r"''"),
-                         s(r'''               "''"  '''))
-        self.assertEqual(findx.double_quoted(r'"'),
-                         s(r'''               "\""  '''))
-        self.assertEqual(findx.double_quoted(r'''\"'''),
-                         s(r'''                 "\\\""  '''))
-        self.assertEqual(findx.double_quoted(r'''\"two\"\"words\"'''),
-                         s(r'''               "\\\"two\\\"\\\"words\\\"" '''))
-        self.assertEqual(findx.double_quoted(r'''\ \\ \\\.'''),
-                         s(r'''                 "\ \\ \\\." '''))
-        self.assertEqual(findx.double_quoted('\\'),
-                         s(r'''              "\\" '''))
-        self.assertEqual(findx.double_quoted('\\\\'),
-                         s(r'''              "\\\\" '''))
-        self.assertEqual(findx.double_quoted(r'\\.'),
-                         s(r'''               "\\." '''))
+        self.assertEqual(
+            findx.double_quoted(r''), s(r"""               ""  """)
+        )
+        self.assertEqual(
+            findx.double_quoted(r'hello'), s(r"""               "hello"  """)
+        )
+        self.assertEqual(
+            findx.double_quoted(r'hello there'),
+            s(r"""               "hello there"  """),
+        )
+        self.assertEqual(
+            findx.double_quoted(r'hello "Mike"'),
+            s(r"""               "hello \"Mike\""  """),
+        )
+        self.assertEqual(
+            findx.double_quoted(r"""hello I'm Mike"""),
+            s(r"""                 "hello I'm Mike"  """),
+        )
+        self.assertEqual(
+            findx.double_quoted(r"""\Windows\system32"""),
+            s(r"""                 "\Windows\system32"  """),
+        )
+        self.assertEqual(
+            findx.double_quoted(r"""\Program Files"""),
+            s(r"""                 "\Program Files"  """),
+        )
+        self.assertEqual(
+            findx.double_quoted(r"'"), s(r"""               "'"  """)
+        )
+        self.assertEqual(
+            findx.double_quoted(r"''"), s(r"""               "''"  """)
+        )
+        self.assertEqual(
+            findx.double_quoted(r'"'), s(r"""               "\""  """)
+        )
+        self.assertEqual(
+            findx.double_quoted(r'''\"'''), s(r"""                 "\\\""  """)
+        )
+        self.assertEqual(
+            findx.double_quoted(r'''\"two\"\"words\"'''),
+            s(r"""               "\\\"two\\\"\\\"words\\\"" """),
+        )
+        self.assertEqual(
+            findx.double_quoted(r"""\ \\ \\\."""),
+            s(r"""                 "\ \\ \\\." """),
+        )
+        self.assertEqual(
+            findx.double_quoted('\\'), s(r"""              "\\" """)
+        )
+        self.assertEqual(
+            findx.double_quoted('\\\\'), s(r"""              "\\\\" """)
+        )
+        self.assertEqual(
+            findx.double_quoted(r'\\.'), s(r"""               "\\." """)
+        )
 
     def test_quoted(self):
         def s(s):
             return s.strip()
 
-        self.assertEqual(findx.quoted(r''),
-                         s(r"""        ''  """))
-        self.assertEqual(findx.quoted(r'hello'),
-                         s(r"""        'hello'  """))
-        self.assertEqual(findx.quoted(r'hello there'),
-                         s(r"""        'hello there'  """))
-        self.assertEqual(findx.quoted(r'hello "Mike"'),
-                         s(r"""        'hello "Mike"'  """))
-        self.assertEqual(findx.quoted(r"hello I'm Mike"),
-                         s(r"""        "hello I'm Mike"  """))
-        self.assertEqual(findx.quoted(r"\Windows\system32"),
-                         s(r"""        '\Windows\system32'  """))
-        self.assertEqual(findx.quoted(r"\Program Files"),
-                         s(r"""        '\Program Files'  """))
+        self.assertEqual(findx.quoted(r''), s(r"""        ''  """))
+        self.assertEqual(findx.quoted(r'hello'), s(r"""        'hello'  """))
+        self.assertEqual(
+            findx.quoted(r'hello there'), s(r"""        'hello there'  """)
+        )
+        self.assertEqual(
+            findx.quoted(r'hello "Mike"'), s(r"""        'hello "Mike"'  """)
+        )
+        self.assertEqual(
+            findx.quoted(r"hello I'm Mike"),
+            s(r"""        "hello I'm Mike"  """),
+        )
+        self.assertEqual(
+            findx.quoted(r'\Windows\system32'),
+            s(r"""        '\Windows\system32'  """),
+        )
+        self.assertEqual(
+            findx.quoted(r'\Program Files'),
+            s(r"""        '\Program Files'  """),
+        )
 
     def test_quote_required(self):
         self.assertTrue(findx.quote_required(r''))
@@ -114,44 +159,77 @@ class TestFindx(unittest.TestCase):
         def s(s):
             return s.strip()
 
-        self.assertEqual(findx.optionally_quoted(r''),
-                         s(r"""                   ''  """))
-        self.assertEqual(findx.optionally_quoted(r'hello'),
-                         s(r"""                    hello   """))
-        self.assertEqual(findx.optionally_quoted(r'hello there'),
-                         s(r"""                   'hello there'  """))
-        self.assertEqual(findx.optionally_quoted(r'hello "Mike"'),
-                         s(r"""                   'hello "Mike"'  """))
-        self.assertEqual(findx.optionally_quoted(r"hello I'm Mike"),
-                         s(r"""                   "hello I'm Mike"  """))
-        self.assertEqual(findx.optionally_quoted(r"\Windows\system32"),
-                         s(r"""                   '\Windows\system32'  """))
-        self.assertEqual(findx.optionally_quoted(r"\Program Files"),
-                         s(r"""                   '\Program Files'  """))
+        self.assertEqual(
+            findx.optionally_quoted(r''), s(r"""                   ''  """)
+        )
+        self.assertEqual(
+            findx.optionally_quoted(r'hello'),
+            s(r"""                    hello   """),
+        )
+        self.assertEqual(
+            findx.optionally_quoted(r'hello there'),
+            s(r"""                   'hello there'  """),
+        )
+        self.assertEqual(
+            findx.optionally_quoted(r'hello "Mike"'),
+            s(r"""                   'hello "Mike"'  """),
+        )
+        self.assertEqual(
+            findx.optionally_quoted(r"hello I'm Mike"),
+            s(r"""                   "hello I'm Mike"  """),
+        )
+        self.assertEqual(
+            findx.optionally_quoted(r'\Windows\system32'),
+            s(r"""                   '\Windows\system32'  """),
+        )
+        self.assertEqual(
+            findx.optionally_quoted(r'\Program Files'),
+            s(r"""                   '\Program Files'  """),
+        )
 
     def test_joined_lines_empty(self):
-        lines = list(findx.joined_lines(make_lines(
+        lines = list(
+            findx.joined_lines(
+                make_lines(
+                    """
             """
-            """)))
-        self.assertEqual(lines, make_lines(
+                )
+            )
+        )
+        self.assertEqual(
+            lines,
+            make_lines(
+                """
             """
-            """))
+            ),
+        )
 
     def test_joined_lines_simple(self):
-        lines = list(findx.joined_lines(make_lines(
-            """
+        lines = list(
+            findx.joined_lines(
+                make_lines(
+                    """
             line1
             line2
-            """)))
-        self.assertEqual(lines, make_lines(
             """
+                )
+            )
+        )
+        self.assertEqual(
+            lines,
+            make_lines(
+                """
             line1
             line2
-            """))
+            """
+            ),
+        )
 
     def test_joined_lines_continuation(self):
-        lines = list(findx.joined_lines(make_lines(
-            """
+        lines = list(
+            findx.joined_lines(
+                make_lines(
+                    """
             line1=
               more
              continuation
@@ -160,28 +238,44 @@ class TestFindx(unittest.TestCase):
               +even more
 
               not continued
-            """)))
-        self.assertEqual(lines, make_lines(
             """
+                )
+            )
+        )
+        self.assertEqual(
+            lines,
+            make_lines(
+                """
             line1= more continuation lines
             line2=even more
 
               not continued
-            """))
+            """
+            ),
+        )
 
     def test_joined_lines_unexpected_indent(self):
-        lines = list(findx.joined_lines(make_lines(
-            """
+        lines = list(
+            findx.joined_lines(
+                make_lines(
+                    """
             # Comment.
 
               Unexpected_indent
-            """)))
-        self.assertEqual(lines, make_lines(
             """
+                )
+            )
+        )
+        self.assertEqual(
+            lines,
+            make_lines(
+                """
             # Comment.
 
               Unexpected_indent
-            """))
+            """
+            ),
+        )
 
     def test_optionally_quoted_join(self):
         def s(s):
@@ -190,59 +284,46 @@ class TestFindx(unittest.TestCase):
         def o_q_join(args):
             return findx.optionally_quoted_join(args)
 
-        self.assertEqual(o_q_join([]),
-                         s(r"""            """))
-        self.assertEqual(o_q_join([r'']),
-                         s(r"""     ''  """))
-        self.assertEqual(o_q_join([r'hello']),
-                         s(r"""      hello  """))
-        self.assertEqual(o_q_join([r'hello', r'there']),
-                         s(r"""      hello there  """))
-        self.assertEqual(o_q_join([r'hello there', r"I'm Mike"]),
-                         s(r"""     'hello there' "I'm Mike"  """))
+        self.assertEqual(o_q_join([]), s(r"""            """))
+        self.assertEqual(o_q_join([r'']), s(r"""     ''  """))
+        self.assertEqual(o_q_join([r'hello']), s(r"""      hello  """))
+        self.assertEqual(
+            o_q_join([r'hello', r'there']), s(r"""      hello there  """)
+        )
+        self.assertEqual(
+            o_q_join([r'hello there', r"I'm Mike"]),
+            s(r"""     'hello there' "I'm Mike"  """),
+        )
 
     def test_quoted_split(self):
-        self.assertEqual(findx.quoted_split('one two'),
-                         ['one', 'two'])
+        self.assertEqual(findx.quoted_split('one two'), ['one', 'two'])
 
     def test_quoted_split_plain_escapes(self):
-        self.assertEqual(findx.quoted_split(r'one\ two'),
-                         ['one two'])
-        self.assertEqual(findx.quoted_split(r'   one\ two   '),
-                         ['one two'])
-        self.assertEqual(findx.quoted_split('one\\ two\\'),
-                         ['one two\\'])
+        self.assertEqual(findx.quoted_split(r'one\ two'), ['one two'])
+        self.assertEqual(findx.quoted_split(r'   one\ two   '), ['one two'])
+        self.assertEqual(findx.quoted_split('one\\ two\\'), ['one two\\'])
 
     def test_quoted_split_single_quotes(self):
-        self.assertEqual(findx.quoted_split("""'one two'"""),
-                         ['one two'])
-        self.assertEqual(findx.quoted_split("""one'  'two"""),
-                         ['one  two'])
-        self.assertEqual(findx.quoted_split("""one'  '"""),
-                         ['one  '])
-        self.assertEqual(findx.quoted_split("""'  'two"""),
-                         ['  two'])
+        self.assertEqual(findx.quoted_split("""'one two'"""), ['one two'])
+        self.assertEqual(findx.quoted_split("""one'  'two"""), ['one  two'])
+        self.assertEqual(findx.quoted_split("""one'  '"""), ['one  '])
+        self.assertEqual(findx.quoted_split("""'  'two"""), ['  two'])
         self.assertRaises(ValueError, findx.quoted_split, "hello' there")
-        self.assertEqual(findx.quoted_split(r"""'\'"""),
-                         ['\\'])
+        self.assertEqual(findx.quoted_split(r"""'\'"""), ['\\'])
 
     def test_quoted_split_double_quotes(self):
-        self.assertEqual(findx.quoted_split('''"one two"'''),
-                         ['one two'])
-        self.assertEqual(findx.quoted_split('''one"  "two'''),
-                         ['one  two'])
-        self.assertEqual(findx.quoted_split('''one"  "'''),
-                         ['one  '])
-        self.assertEqual(findx.quoted_split('''"  "two'''),
-                         ['  two'])
-        self.assertEqual(findx.quoted_split(r'''"\keep"'''),
-                         [r'\keep'])
-        self.assertEqual(findx.quoted_split(r''' "\" \\\" \\\\" '''),
-                         [r'" \" \\'])
-        self.assertEqual(findx.quoted_split(r'''"\\\keep \\".'''),
-                         [r'\\\keep \.'])
-        self.assertEqual(findx.quoted_split(r'''"\""'''),
-                         [r'"'])
+        self.assertEqual(findx.quoted_split('''"one two"'''), ['one two'])
+        self.assertEqual(findx.quoted_split("""one"  "two"""), ['one  two'])
+        self.assertEqual(findx.quoted_split('''one"  "'''), ['one  '])
+        self.assertEqual(findx.quoted_split(""""  "two"""), ['  two'])
+        self.assertEqual(findx.quoted_split(r'''"\keep"'''), [r'\keep'])
+        self.assertEqual(
+            findx.quoted_split(r""" "\" \\\" \\\\" """), [r'" \" \\']
+        )
+        self.assertEqual(
+            findx.quoted_split(r""""\\\keep \\"."""), [r'\\\keep \.']
+        )
+        self.assertEqual(findx.quoted_split(r'''"\""'''), [r'"'])
         self.assertRaises(ValueError, findx.quoted_split, 'hello" there')
 
     def test_has_meta(self):
@@ -331,7 +412,8 @@ class TestFindx(unittest.TestCase):
     def test_exclude2(self):
         f = findx.Findx()
         f.parse_command_line(
-            '-print -e ( -type f -name *.exe ) -print'.split())
+            '-print -e ( -type f -name *.exe ) -print'.split()
+        )
         self.assertEqual(f.expression, '( -print -print )'.split())
         self.assertEqual(f.excludes, '( -type f -name *.exe )'.split())
 
@@ -370,10 +452,12 @@ class TestFindx(unittest.TestCase):
         f = findx.Findx()
         self.assertEqual(f.split_glob_outside_braces(''), [''])
         self.assertEqual(f.split_glob_outside_braces('one'), ['one'])
-        self.assertEqual(f.split_glob_outside_braces('one|two'),
-                         ['one', 'two'])
-        self.assertEqual(f.split_glob_outside_braces('on{e|t}wo'),
-                         ['on{e|t}wo'])
+        self.assertEqual(
+            f.split_glob_outside_braces('one|two'), ['one', 'two']
+        )
+        self.assertEqual(
+            f.split_glob_outside_braces('on{e|t}wo'), ['on{e|t}wo']
+        )
 
     def test_split_glob(self):
         f = findx.Findx()
@@ -390,23 +474,24 @@ class TestFindx(unittest.TestCase):
         self.assertEqual(f.split_glob('{a,b}{c,d}'), ['ac', 'ad', 'bc', 'bd'])
         self.assertEqual(f.split_glob('a{b,c,d}e'), ['abe', 'ace', 'ade'])
         self.assertEqual(f.split_glob('a{b,c[}]d'), ['a{b', 'c[}]d'])
-        self.assertEqual(f.split_glob('a{b,c{d,e}f}g'),
-                         ['abg', 'acdfg', 'acefg'])
+        self.assertEqual(
+            f.split_glob('a{b,c{d,e}f}g'), ['abg', 'acdfg', 'acefg']
+        )
         self.assertEqual(f.split_glob('a{b{c|d}e}f'), ['a{bce}f', 'a{bde}f'])
 
     def test_text_settings(self):
         ts = findx.TextSettings('name')
-        ts.set_text(make_text(
-            """
+        ts.set_text(
+            make_text(
+                """
             line1 = something
             line2 = something
                 else
-            """))
+            """
+            )
+        )
         d = dict(ts.items())
-        self.assertEqual(d, {
-            'line1': 'something',
-            'line2': 'something else',
-        })
+        self.assertEqual(d, {'line1': 'something', 'line2': 'something else'})
 
     def test_text_settings_invalid(self):
         ts = findx.TextSettings('name')
@@ -416,4 +501,6 @@ class TestFindx(unittest.TestCase):
             make_text(
                 """
                 = something
-                """))
+                """
+            ),
+        )
