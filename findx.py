@@ -341,14 +341,14 @@ posix_grep_args =
 # Directory globs excluded by ``-stdxd``.
 stdxd =
     .svn .git .bzr .hg .undo build *export pkgexp
-    bak *.egg-info *.egg
+    bak *.egg-info *.egg .mypy_cache
 
 # File globs excluded by ``-stdxf``.
 stdxf =
     *.bak *~ *.tmp
     *.o *.a *.so *.ds *.os *.sbr *.pch *.pdb *.pyc *.pyo
     *.zip *.tar *.gz *.bz2
-    *.bin *.elf *.exe
+    *.bin *.elf *.exe *.obj *.dll *.lib *.suo
     *.bmp *.ico *.gif *.jpg *.png
     *.pdf
     .*.sw? tags
