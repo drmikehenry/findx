@@ -1536,7 +1536,7 @@ def main():
             exit_status = 2
         except KeyboardInterrupt:
             exit_status = 128 + signal.SIGINT
-    except:
+    except Exception:
         warn('uncaught exception:')
         traceback.print_exc()
         exit_status = 3
