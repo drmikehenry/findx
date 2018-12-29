@@ -19,7 +19,7 @@ for line in open_file(NAME + '.py'):
 setup(
     name=NAME,
     version=__version__,
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests']),
     py_modules=[NAME],
     entry_points={
         'console_scripts': [
