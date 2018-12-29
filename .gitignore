@@ -1,4 +1,7 @@
+*.egg-info/
 *.py[cod]
+.coverage
+.tox/
 build/
 dist/
-*.egg-info/
+htmlcov/
