@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
 import os
+
+import setuptools
 
 NAME = 'findx'
 
@@ -16,10 +17,10 @@ for line in open_file(NAME + '.py'):
         exec(line)
         break
 
-setup(
+setuptools.setup(
     name=NAME,
     version=__version__,
-    packages=find_packages(exclude=['tests']),
+    packages=setuptools.find_packages(exclude=['tests']),
     py_modules=[NAME],
     entry_points={
         'console_scripts': [

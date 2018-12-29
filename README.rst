@@ -80,13 +80,13 @@ From the source tree, install via::
 Running the tests
 -----------------
 
-Invoke the tests via the ``Makefile``::
+Install any development requirements::
 
-  make
+  pip install -r dev-requirements.txt
 
-Or manually via::
+Run tests via pytest::
 
-  python -m unittest discover
+  pytest
 
 Changes
 -------
