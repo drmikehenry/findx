@@ -101,10 +101,10 @@ class TestFindx(unittest.TestCase):
             findx.double_quoted(r'"'), s(r"""               "\""  """)
         )
         self.assertEqual(
-            findx.double_quoted(r'''\"'''), s(r"""                 "\\\""  """)
+            findx.double_quoted('\\"'), s('                 "\\\\\\""  ')
         )
         self.assertEqual(
-            findx.double_quoted(r'''\"two\"\"words\"'''),
+            findx.double_quoted('\\"two\\"\\"words\\"'),
             s(r"""               "\\\"two\\\"\\\"words\\\"" """),
         )
         self.assertEqual(
@@ -312,18 +312,18 @@ class TestFindx(unittest.TestCase):
         self.assertEqual(findx.quoted_split(r"""'\'"""), ['\\'])
 
     def test_quoted_split_double_quotes(self):
-        self.assertEqual(findx.quoted_split('''"one two"'''), ['one two'])
+        self.assertEqual(findx.quoted_split('"one two"'), ['one two'])
         self.assertEqual(findx.quoted_split("""one"  "two"""), ['one  two'])
-        self.assertEqual(findx.quoted_split('''one"  "'''), ['one  '])
+        self.assertEqual(findx.quoted_split('one"  "'), ['one  '])
         self.assertEqual(findx.quoted_split(""""  "two"""), ['  two'])
-        self.assertEqual(findx.quoted_split(r'''"\keep"'''), [r'\keep'])
+        self.assertEqual(findx.quoted_split('"\\keep"'), ['\\keep'])
         self.assertEqual(
             findx.quoted_split(r""" "\" \\\" \\\\" """), [r'" \" \\']
         )
         self.assertEqual(
             findx.quoted_split(r""""\\\keep \\"."""), [r'\\\keep \.']
         )
-        self.assertEqual(findx.quoted_split(r'''"\""'''), [r'"'])
+        self.assertEqual(findx.quoted_split('"\\""'), ['"'])
         self.assertRaises(ValueError, findx.quoted_split, 'hello" there')
 
     def test_has_meta(self):
