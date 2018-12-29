@@ -355,8 +355,7 @@ stdxf =
 """
 
 
-VALID_VARS = re.findall(
-    r'^\w+', DEFAULT_CONFIG_TEXT, re.MULTILINE)
+VALID_VARS = re.findall(r'^\w+', DEFAULT_CONFIG_TEXT, re.MULTILINE)
 
 
 HELP_TEXT = HELP_TEXT.replace('__DEFAULT_CONFIG_TEXT__', DEFAULT_CONFIG_TEXT)
@@ -450,9 +449,9 @@ def quoted_split(value):
                 if quote == "'":
                     special = False
                 elif quote == '"':
-                    special = (c == '"')
+                    special = c == '"'
                 else:
-                    special = (c.isspace() or c in ['"', "'"])
+                    special = c.isspace() or c in ['"', "'"]
                 if special:
                     keep('\\' * (bslash_count // 2))
                     bslash_count = bslash_count % 2
@@ -484,7 +483,7 @@ def quoted_split(value):
 
 def split_leading_whitespace(s):
     rest = s.lstrip()
-    leading_whitespace = s[:-len(rest)]
+    leading_whitespace = s[: -len(rest)]
     return leading_whitespace, rest
 
 
@@ -525,92 +524,99 @@ class FindxRuntimeError(FindxError):
 class MissingArgumentError(FindxSyntaxError):
     def __init__(self):
         super(MissingArgumentError, self).__init__(
-            'Missing command-line argument')
+            'Missing command-line argument'
+        )
 
 
 class UnexpectedArgumentError(FindxSyntaxError):
     def __init__(self, arg, expected_arg):
         super(UnexpectedArgumentError, self).__init__(
-            'Got argument %s, expected %s' % (
-                strepr(arg), strepr(expected_arg)))
+            'Got argument %s, expected %s'
+            % (strepr(arg), strepr(expected_arg))
+        )
 
 
 class MissingXargError(FindxSyntaxError):
     def __init__(self):
-        super(MissingXargError, self).__init__(
-            'Missing required xarg')
+        super(MissingXargError, self).__init__('Missing required xarg')
 
 
 class InvalidOptionError(FindxSyntaxError):
     def __init__(self, bad_option):
         super(InvalidOptionError, self).__init__(
-            'Invalid command-line option %s' % strepr(bad_option))
+            'Invalid command-line option %s' % strepr(bad_option)
+        )
 
 
 class PrintWithXargsError(FindxSyntaxError):
     def __init__(self):
         super(PrintWithXargsError, self).__init__(
-            "Cannot mix '-print' with XARGS")
+            "Cannot mix '-print' with XARGS"
+        )
 
 
 class InvalidConfigLineError(FindxSyntaxError):
     def __init__(self, source, line, reason):
         super(InvalidConfigLineError, self).__init__(
-            'In %s for line %s: %s' % (
-                source, strepr(line), reason))
+            'In %s for line %s: %s' % (source, strepr(line), reason)
+        )
 
 
 class InvalidConfigVarError(FindxSyntaxError):
     def __init__(self, source, var):
         super(InvalidConfigVarError, self).__init__(
-            'In %s variable %s is invalid' % (
-                source, strepr(var)))
+            'In %s variable %s is invalid' % (source, strepr(var))
+        )
 
 
 class InvalidConfigValueError(FindxSyntaxError):
     def __init__(self, source, var, reason):
         super(InvalidConfigValueError, self).__init__(
-            'In %s for variable %s: %s' % (
-                source, strepr(var), reason))
+            'In %s for variable %s: %s' % (source, strepr(var), reason)
+        )
 
 
 class InvalidEmptyConfigVarError(FindxSyntaxError):
     def __init__(self, var):
         super(InvalidEmptyConfigVarError, self).__init__(
-            'Variable %s must not be empty' % (
-                strepr(var)))
+            'Variable %s must not be empty' % (strepr(var))
+        )
 
 
 class InvalidScalarConfigVarError(FindxSyntaxError):
     def __init__(self, var):
         super(InvalidScalarConfigVarError, self).__init__(
-            'Variable %s must be a single value' % (
-                strepr(var)))
+            'Variable %s must be a single value' % (strepr(var))
+        )
 
 
 class InvalidChoiceConfigVarError(FindxSyntaxError):
     def __init__(self, var, choices):
         super(InvalidChoiceConfigVarError, self).__init__(
-            'Variable %s must be one of: %s' % (
-                strepr(var), ', '.join(choices)))
+            'Variable %s must be one of: %s'
+            % (strepr(var), ', '.join(choices))
+        )
 
 
 class ConfigFilesUnstableError(FindxSyntaxError):
     def __init__(self):
         super(ConfigFilesUnstableError, self).__init__(
-            "'config_files' setting does not stabilize")
+            "'config_files' setting does not stabilize"
+        )
 
 
 class InvalidRootError(FindxRuntimeError):
     def __init__(self, root):
         super(InvalidRootError, self).__init__(
-            'Invalid root path %s' % strepr(root))
+            'Invalid root path %s' % strepr(root)
+        )
 
 
 class ExecutableNotFoundError(FindxRuntimeError):
     def __init__(self, executable):
         super(ExecutableNotFoundError, self).__init__(
-            'Executable %s not found' % strepr(executable))
+            'Executable %s not found' % strepr(executable)
+        )
 
 
 def must_find_executable(name):
@@ -712,7 +718,7 @@ class EnvVarSettings(Settings):
     def __iter__(self):
         for var in os.environ:
             if var.startswith(self._prefix):
-                yield var[len(self._prefix):].lower()
+                yield var[len(self._prefix) :].lower()
 
     def __init__(self):
         super(EnvVarSettings, self).__init__('[Environment]')
@@ -741,22 +747,24 @@ class TextSettings(Settings):
                 pass
             elif leading_whitespace:
                 raise InvalidConfigLineError(
-                    self.name, line, 'Unexpected indentation')
+                    self.name, line, 'Unexpected indentation'
+                )
             elif '=' in line:
                 var, value = line.split('=', 1)
                 var = var.rstrip()
                 value = value.lstrip()
                 if not var:
                     raise InvalidConfigLineError(
-                        self.name, line, 'Missing variable name')
+                        self.name, line, 'Missing variable name'
+                    )
                 elif var in self._dict:
                     raise InvalidConfigLineError(
-                        self.name, line, 'Duplicate assignment')
+                        self.name, line, 'Duplicate assignment'
+                    )
                 else:
                     self._dict[var] = value
             else:
-                raise InvalidConfigLineError(
-                    self.name, line, "Missing '='")
+                raise InvalidConfigLineError(self.name, line, "Missing '='")
 
 
 class FileSettings(TextSettings):
@@ -1061,9 +1069,11 @@ class Findx(object):
         return False
 
     def matches_root(self, s):
-        return (s not in self.RESERVED_WORDS and
-                not s.startswith('-') and
-                (not self.has_meta(s) or os.path.exists(s)))
+        return (
+            s not in self.RESERVED_WORDS
+            and not s.startswith('-')
+            and (not self.has_meta(s) or os.path.exists(s))
+        )
 
     def push_arg(self, arg):
         self.args.insert(0, arg)
@@ -1182,8 +1192,8 @@ class Findx(object):
                     break
                 middles = self.split_glob_outside_braces(glob[start:end])
                 if len(middles) > 1:
-                    pre = glob[:start - 1]
-                    post = glob[end + 1:]
+                    pre = glob[: start - 1]
+                    post = glob[end + 1 :]
                     input_hopper[:0] = [pre + mid + post for mid in middles]
                     break
         if not output_hopper:
@@ -1349,7 +1359,7 @@ class Findx(object):
         elif self.matches_root(arg):
             self.roots.append(arg)
         elif arg.startswith('--'):
-            var = self.switch_to_var(arg[len('--'):])
+            var = self.switch_to_var(arg[len('--') :])
             if var not in VALID_VARS:
                 raise InvalidOptionError(arg)
             raw_value = self.pop_arg()
@@ -1405,12 +1415,13 @@ class Findx(object):
 
         find_tool = self.resolve_path_var('find_path')
         find_style = self.resolve_find_style(find_tool)
-        have_print_zero = (find_style in ['gnu', 'bsd'])
+        have_print_zero = find_style in ['gnu', 'bsd']
         self.find_pipe_args = (
-            [find_tool] +
-            self.pre_path_options +
-            self.roots +
-            self.post_path_options)
+            [find_tool]
+            + self.pre_path_options
+            + self.roots
+            + self.post_path_options
+        )
 
         std_excludes = []
         if self.stdxd:
@@ -1440,7 +1451,7 @@ class Findx(object):
             xargs_tool = self.resolve_path_var('xargs_path')
             xargs_style = self.resolve_xargs_style(xargs_tool)
             self.xargs_pipe_args = [xargs_tool]
-            have_dash_zero = (xargs_style in ['gnu', 'bsd'])
+            have_dash_zero = xargs_style in ['gnu', 'bsd']
             if have_dash_zero and have_print_zero:
                 self.xargs_pipe_args.append('-0')
                 print_action = '-print0'
@@ -1471,21 +1482,26 @@ class Findx(object):
             find_abs_path = must_find_executable(self.find_pipe_args[0])
             if self.xargs_pipe_args:
                 xargs_abs_path = must_find_executable(self.xargs_pipe_args[0])
-                find_proc = Popen(self.find_pipe_args, stdout=PIPE,
-                                  executable=find_abs_path)
-                xargs_proc = Popen(self.xargs_pipe_args,
-                                   stdin=find_proc.stdout,
-                                   executable=xargs_abs_path)
+                find_proc = Popen(
+                    self.find_pipe_args, stdout=PIPE, executable=find_abs_path
+                )
+                xargs_proc = Popen(
+                    self.xargs_pipe_args,
+                    stdin=find_proc.stdout,
+                    executable=xargs_abs_path,
+                )
                 find_proc.wait()
                 xargs_proc.wait()
                 find_status = find_proc.returncode
                 xargs_status = xargs_proc.returncode
                 self.pipe_status = (find_status, xargs_status)
-                exit_status = merge_find_xargs_status(find_status,
-                                                      xargs_status)
+                exit_status = merge_find_xargs_status(
+                    find_status, xargs_status
+                )
             else:
-                find_proc = Popen(self.find_pipe_args,
-                                  executable=find_abs_path)
+                find_proc = Popen(
+                    self.find_pipe_args, executable=find_abs_path
+                )
                 find_proc.wait()
                 find_status = find_proc.returncode
                 self.pipe_status = (find_status,)
@@ -1525,6 +1541,7 @@ def ffx():
 def ffg():
     sys.argv.insert(1, '-ffg')
     return main()
+
 
 if __name__ == '__main__':
     sys.exit(main())
