@@ -14,29 +14,32 @@ import traceback
 
 __version__ = '0.9.11'
 
-HELP_TEXT = """\
-Usage: findx [OPTION | FINDOPTION | DIR | METAGLOB]*
-  or:  findx [OPTION | FINDOPTION | DIR | METAGLOB]* : [XARG]+
+HELP_TEXT = r"""
+Usage: findx [OPTION | FINDOPTION | ROOT | METAGLOB]*
+  or:  findx [OPTION | FINDOPTION | ROOT | METAGLOB]* : [XARG]+
 
 Additional shortcut commands:
 
   ffx:  findx -ffx
   ffg:  findx -ffg
 
-Provides shortcuts for the following 'find' idioms:
-    find DIRLIST   EXPRESSION
-    find DIRLIST ( EXPRESSION ) -print0 | xargs -0 XARGLIST
+**NOTE** Examples below include POSIX shell quoting to protect special
+characters from the shell.
 
-The OPTION, FINDOPTION, DIR, and METAGLOB options may be specified in any order
-while in FINDX MODE.  The XARGs are kept in-order while in XARGS MODE.
+Provides shortcuts for the following 'find' idioms:
+    find [...]
+    find [...] -print0 | xargs -0 [XARG]+
+
+The OPTION, FINDOPTION, ROOT, and METAGLOB options may be specified in any
+order while in FINDX MODE.  The XARGs are kept in-order while in XARGS MODE.
 
 OPTION      An option to findx (specified below).
 
 FINDOPTION  A standard 'find' option to be appended to EXPRESSION.
             ('man find' or 'find --help' for details.)
 
-DIR         A directory to be appended to DIRLIST.
-            DIR must not contain METACHARACTERS.
+ROOT        A directory or file to be appended to ROOTS.
+            ROOT must not contain METACHARACTERS.
 
 METAGLOB    A GLOB containing one or more METACHARACTERS.
             Shortcut for -name METAGLOB.
@@ -53,12 +56,13 @@ GLOB        An extended-syntax filename glob reducing to one or more logically
             OR'ed 'find'-style globs containing '*', '?', and '[]'.  OR'ing
             occurs at '|' and ',' characters.  Bash-like braces may be used to
             constrain expansion; braces may be nested.  All metacharacters
-            except ']' may be "quoted" via square brackets.  Examples:
+            except ']' may be "quoted" via square brackets.  Globs containing
+            shell metacharacters should be escaped.  Examples:
 
-            -name one|two           ( -name one -o -name two )
-            -name one,two           ( -name one -o -name two )
-            -name *.{c,cpp}         ( -name *.c -o -name *.cpp )
-            -name quoted[,]comma    -name quoted,comma
+            -name 'one|two'         \( -name one -o -name two \)
+            -name one,two           \( -name one -o -name two \)
+            -name '*.{c,cpp}'       \( -name '*.c' -o -name '*.cpp' \)
+            -name 'quoted[,]comma'  -name 'quoted,comma'
 
             Extended GLOBs are recognized after the following 'find' tests:
             -ilname -iname -ipath -wholename -lname -name -path -wholename
@@ -67,7 +71,7 @@ Extensions to FINDOPTIONS
 
   In addition to extended GLOBs, the '-type' option is extended to accept
   multiple type characters which are logically OR'ed.  Examples:
-            -type fd                ( -type f -o -type d )
+            -type fd                \( -type f -o -type d \)
             -type f                 -type f
 
 OPTIONS
@@ -78,10 +82,10 @@ OPTIONS
   -show-var VAR         show current value of variable VAR
   -show-vars            show values of all variables
   -show-defaults        show default values of all variables
-  -root DIR             add arbitrary DIR to DIRLIST
+  -root ROOT            add arbitrary ROOT (directory or file) to ROOTS
   -x EXCLUDE            add EXCLUDE to list of exclusions
   -i INCLUDE            add INCLUDE to list of inclusions (disable exclusions
-                        by including everything via '-i *')
+                        by including everything via '-i \*')
   -stdxf                use standard exclusions for files (configured by
                         the 'stdxf' variable)
   -stdxd                use standard exclusions for directories (configured
@@ -110,21 +114,22 @@ EXCLUSIONS, INCLUSIONS
   (including the AND implied between consecutive terms).  Parenthesized
   expressions count as a term.
   If exclusions are present, they are logically OR'ed as follows:
-    find ( EXCLUDE1 -o EXCLUDE2 ... ) -prune -o EXPRESSION
+    find \( EXCLUDE1 -o EXCLUDE2 ... \) -prune -o EXPRESSION
   Inclusions override exclusions; if both are present, the pruning becomes:
-    find ( EXCLUDE1 -o EXCLUDE2 ... ) ! ( INCLUDE1 -o INCLUDE2 ... ) -prune
-  An inclusion of '-i *' resets previously specified exclusions and inclusions.
+    find \( EXCLUDE1 -o EXCLUDE2 ... \) ! \( INCLUDE1 -o INCLUDE2 ... \) -prune
+  An inclusion of '-i \*' resets previously specified exclusions and
+  inclusions.
 
   Examples:
     # Exclude *.txt, *.TXT, etc.
-    -x -iname *.txt
+    -x -iname '*.txt'
 
     # Exclude anything with a '.' in the name, but include '*.txt'.
-    -x -name *.* -i *.txt
+    -x -name '*.*' -i '*.txt'
 
     # Exclude .svn directories and files named '*.bak', but include 'f.bak'.
     # NOTE that '-i' requires '-name' because f.bak has no metacharacters.
-    -x ( -type d -name .svn -o -type f -name *.bak ) -i -name f.bak
+    -x \( -type d -name .svn -o -type f -name '*.bak' \) -i -name f.bak
 
 STANDARD EXCLUSIONS
   When '-stdx' is specified, a built-in list of standard exclusions applies.
@@ -137,33 +142,33 @@ STANDARD ACTION
 
 EXIT STATUS
   0         full success
-  1         ``findx`` syntax error (e.g., invalid command-line option)
-  2         ``findx`` runtime error (e.g., missing ``xargs`` command)
-  3         ``findx`` uncaught exception (if seen, please submit a bug report)
+  1         'findx' syntax error (e.g., invalid command-line option)
+  2         'findx' runtime error (e.g., missing 'xargs' command)
+  3         'findx' uncaught exception (if seen, please submit a bug report)
   4..99     reserved
-  100       multiple pipeline failures (``find`` and ``xargs`` both non-zero)
+  100       multiple pipeline failures ('find' and 'xargs' both non-zero)
 
-  101..119  ``find`` returned 1..19
-  120       ``find`` returned 20..127
+  101..119  'find' returned 1..19
+  120       'find' returned 20..127
 
-  121       ``xargs`` returned 1
-  122       ``xargs`` returned 2..122
-  123..127  ``xargs`` returned 123..127
+  121       'xargs' returned 1
+  122       'xargs' returned 2..122
+  123..127  'xargs' returned 123..127
 
-  128+n     ``findx`` or other program terminated on signal n
+  128+n     'findx' or other program terminated on signal n
 
-  Returning 128+n takes precedence over returning 100.  If any of ``findx``,
-  ``find``, or ``xargs`` are terminated by a signal, the overall exit status
+  Returning 128+n takes precedence over returning 100.  If any of 'findx',
+  'find', or 'xargs' are terminated by a signal, the overall exit status
   will reflect one of their individual exit statuses rather than a combined
   code of 100.
 
 EXAMPLES
 
 # Grep for 'main' in .c and .cpp files.
-  findx *.{c,cpp} : grep main
+  findx '*.{c,cpp}' : grep main
 
 # Grep for 'main' in .c and .cpp files, excluding .svn and CVS directories.
-  findx *.{c,cpp} -x -name .svn,CVS : grep main
+  findx '*.{c,cpp}' -x -name .svn,CVS : grep main
 
 # Grep for 'main' in all files with standard exclusions.
   ffg main
@@ -174,8 +179,8 @@ EXAMPLES
   ffg [ '*.c' /work : main -i
 
 # Remove backup files with standard exclusions.
-  ffx *~|*.bak : rm
-  ffx *~|*.bak -delete
+  ffx '*~|*.bak' : rm
+  ffx '*~|*.bak' -delete
 
 # All files and directories modified less than 1 day ago.
   findx -mtime 1
@@ -187,8 +192,10 @@ EXAMPLES
   findx -type d
   findx -type d : ls -ld
 
-# Grep for 'main' excluding tmp directories.
-  ffg main [ -x tmp
+# Grep for 'main' excluding tmp directories; the use of '-name' can be avoided
+# by adding a comma to 'tmp', making it into an extended glob.
+  ffg main [ -x -name tmp
+  ffg main [ -x tmp,
 
 # Override pre-defined exclusions.
   findx -i '*'
@@ -218,9 +225,12 @@ may be merged with the variable's previous value:
   variable_name = ^values to prepend
   variable_name = -values to remove
 
-Use the special character ``=`` to force normal assignment of arbitrary values:
+Use the special character '=' to force normal assignment of arbitrary values;
+all characters after the '=' are taken literally:
 
   variable_name = =+literal_value_starts_with_plus
+  variable_name = =^literal_value_starts_with_caret
+  variable_name = =-literal_value_starts_with_minus
 
 CONFIG FILE
 
@@ -236,7 +246,7 @@ assignments.  For example:
     second_element
     third_element
 
-  # To avoid the space, begin the continuation lines with ``+``:
+  # To avoid the space, begin the continuation lines with '+':
   variable_name = first_
     +element second_
     +element third_element
@@ -282,11 +292,11 @@ choices have higher precedence):
 - Command-line switch
 
 For environment variables, the variable name is converted to uppercase and
-``FINDX_`` is prepended.  On the command line, the name's underscores are
-converted to hyphens and ``--`` is prepended.  For example, the variable
-``config_files`` would become ``FINDX_CONFIG_FILES`` as an environment variable
-and ``--config-files`` on the command line.  An assignment appending the file
-``new_config_file`` could be done any of the following ways::
+'FINDX_' is prepended.  On the command line, the name's underscores are
+converted to hyphens and '--' is prepended.  For example, the variable
+'config_files' would become 'FINDX_CONFIG_FILES' as an environment variable and
+'--config-files' on the command line.  An assignment appending the file
+'new_config_file' could be done any of the following ways::
 
   # In a config file:
   config_files = +new_config_file
@@ -300,29 +310,29 @@ and ``--config-files`` on the command line.  An assignment appending the file
 CONFIGURATION VARIABLES
 
 __DEFAULT_CONFIG_TEXT__
-"""
+""".strip()
 
-DEFAULT_CONFIG_TEXT = """\
+DEFAULT_CONFIG_TEXT = r"""
 # Configuration files to use in order of increasing priority.
 config_files =
     /etc/findx/config
     ~/.config/findx/config
 
-# Names and/or absolute paths for the ``find`` utility.  The first-found
+# Names and/or absolute paths for the 'find' utility.  The first-found
 # choice will be used (must not be empty).
 find_path = gnufind find
 
 # Style of find utility: probe, gnu, bsd, posix
 find_style = probe
 
-# Names and/or absolute paths for the ``xargs`` utility.  The first-found
+# Names and/or absolute paths for the 'xargs' utility.  The first-found
 # choice will be used (must not be empty).
 xargs_path = gnuxargs xargs
 
 # Style of xargs utility: probe, gnu, bsd, posix
 xargs_style = probe
 
-# Names and/or absolute paths for the ``grep`` utility.  The first-found
+# Names and/or absolute paths for the 'grep' utility.  The first-found
 # choice will be used (must not be empty).
 grep_path = gnugrep grep
 
@@ -338,12 +348,12 @@ bsd_grep_args = '-H' '--color=auto'
 # Extra grep arguments for use when grep_style = posix.
 posix_grep_args =
 
-# Directory globs excluded by ``-stdxd``.
+# Directory globs excluded by '-stdxd'.
 stdxd =
     .svn .git .bzr .hg .undo build *export pkgexp
     bak *.egg-info *.egg .mypy_cache
 
-# File globs excluded by ``-stdxf``.
+# File globs excluded by '-stdxf'.
 stdxf =
     *.bak *~ *.tmp
     *.o *.a *.so *.ds *.os *.sbr *.pch *.pdb *.pyc *.pyo
@@ -352,7 +362,7 @@ stdxf =
     *.bmp *.ico *.gif *.jpg *.png
     *.pdf
     .*.sw? tags
-"""
+""".strip()
 
 
 VALID_VARS = re.findall(r'^\w+', DEFAULT_CONFIG_TEXT, re.MULTILINE)
@@ -1318,7 +1328,7 @@ class Findx(object):
                 print(self._make_setting(var, self.config.get(var)))
             self.shown = True
         elif arg == '-show-defaults':
-            print(DEFAULT_CONFIG_TEXT.strip())
+            print(DEFAULT_CONFIG_TEXT)
             self.shown = True
         elif arg == '-root':
             self.roots.append(self.pop_arg())
