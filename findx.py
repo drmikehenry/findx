@@ -4,13 +4,13 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import collections
-import os
-import sys
-import re
-import traceback
-import signal
 import distutils.spawn
-from subprocess import Popen, STDOUT, PIPE
+import os
+import re
+import signal
+from subprocess import PIPE, Popen, STDOUT
+import sys
+import traceback
 
 __version__ = '0.9.11'
 
