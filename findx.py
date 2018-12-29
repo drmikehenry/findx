@@ -351,7 +351,7 @@ posix_grep_args =
 # Directory globs excluded by '-stdxd'.
 stdxd =
     .svn .git .bzr .hg .undo build *export pkgexp
-    bak *.egg-info *.egg .mypy_cache
+    bak *.egg-info *.egg .mypy_cache .tox htmlcov
 
 # File globs excluded by '-stdxf'.
 stdxf =
