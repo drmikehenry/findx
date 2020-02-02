@@ -12,7 +12,7 @@ from subprocess import PIPE, Popen, STDOUT
 import sys
 import traceback
 
-__version__ = '0.9.12'
+__version__ = '0.10.0'
 
 HELP_TEXT = r"""
 Usage: findx [OPTION | FINDOPTION | ROOT | METAGLOB]*
