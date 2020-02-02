@@ -12,7 +12,7 @@ from subprocess import PIPE, Popen, STDOUT
 import sys
 import traceback
 
-__version__ = '0.10.0'
+__version__ = "0.10.0"
 
 HELP_TEXT = r"""
 Usage: findx [OPTION | FINDOPTION | ROOT | METAGLOB]*
@@ -365,30 +365,30 @@ stdxf =
 """.strip()
 
 
-VALID_VARS = re.findall(r'^\w+', DEFAULT_CONFIG_TEXT, re.MULTILINE)
+VALID_VARS = re.findall(r"^\w+", DEFAULT_CONFIG_TEXT, re.MULTILINE)
 
 
-HELP_TEXT = HELP_TEXT.replace('__DEFAULT_CONFIG_TEXT__', DEFAULT_CONFIG_TEXT)
+HELP_TEXT = HELP_TEXT.replace("__DEFAULT_CONFIG_TEXT__", DEFAULT_CONFIG_TEXT)
 
 
 def warn(message):
-    print('findx: %s' % message, file=sys.stderr)
+    print("findx: %s" % message, file=sys.stderr)
 
 
 def strepr(s):
     """repr(s) without the leading "u" for Python 2 Unicode strings."""
-    return repr(s).lstrip('u')
+    return repr(s).lstrip("u")
 
 
 def single_quoted(s):
-    if s == '':
+    if s == "":
         return "''"
-    parts = ['' if p == '' else ("'%s'" % p) for p in s.split("'")]
+    parts = ["" if p == "" else ("'%s'" % p) for p in s.split("'")]
     return "\\'".join(parts)
 
 
 def double_quoted(s):
-    bslash = '\\'
+    bslash = "\\"
     bslash_count = 0
     parts = []
     for c in s:
@@ -400,7 +400,7 @@ def double_quoted(s):
             parts.append(bslash * bslash_count + c)
             bslash_count = 0
     parts.append(bslash * bslash_count * 2)
-    return '"%s"' % (''.join(parts))
+    return '"%s"' % ("".join(parts))
 
 
 def quoted(s):
@@ -411,16 +411,16 @@ def quoted(s):
 
 
 def quoted_join(args):
-    return ' '.join(quoted(arg) for arg in args)
+    return " ".join(quoted(arg) for arg in args)
 
 
 def quote_required(arg):
-    if arg == '':
+    if arg == "":
         required = True
     else:
         required = False
         for c in arg:
-            if c.isspace() or c in ['\\', '"', "'"]:
+            if c.isspace() or c in ["\\", '"', "'"]:
                 required = True
                 break
     return required
@@ -434,12 +434,12 @@ def optionally_quoted(s):
 
 
 def optionally_quoted_join(args):
-    return ' '.join(optionally_quoted(arg) for arg in args)
+    return " ".join(optionally_quoted(arg) for arg in args)
 
 
 def quoted_split(value):
     args = []
-    quote = ''
+    quote = ""
     bslash_count = 0
     this_arg = []
 
@@ -448,11 +448,11 @@ def quoted_split(value):
 
     def finish_arg():
         if this_arg:
-            args.append(''.join(this_arg))
+            args.append("".join(this_arg))
             this_arg[:] = []
 
     for c in value:
-        if c == '\\':
+        if c == "\\":
             bslash_count += 1
         else:
             if bslash_count:
@@ -463,30 +463,30 @@ def quoted_split(value):
                 else:
                     special = c.isspace() or c in ['"', "'"]
                 if special:
-                    keep('\\' * (bslash_count // 2))
+                    keep("\\" * (bslash_count // 2))
                     bslash_count = bslash_count % 2
                 else:
-                    keep('\\' * bslash_count)
+                    keep("\\" * bslash_count)
                     bslash_count = 0
             if bslash_count:
                 keep(c)
                 bslash_count = 0
             elif c == quote:
-                quote = ''
+                quote = ""
             elif quote:
                 keep(c)
             elif c in ['"', "'"]:
                 quote = c
                 # Keep an empty string to ensure we're in an arg.
-                keep('')
+                keep("")
             elif c.isspace():
                 finish_arg()
             else:
                 keep(c)
     if bslash_count:
-        keep('\\' * bslash_count)
+        keep("\\" * bslash_count)
     if quote:
-        raise ValueError('No closing quotation in %s' % strepr(value))
+        raise ValueError("No closing quotation in %s" % strepr(value))
     finish_arg()
     return args
 
@@ -503,10 +503,10 @@ def joined_lines(lines):
         line = line.rstrip()
         leading_whitespace, rest = split_leading_whitespace(line)
         if current_line and leading_whitespace:
-            if rest.startswith('+'):
+            if rest.startswith("+"):
                 current_line += rest[1:]
             else:
-                current_line += ' ' + rest
+                current_line += " " + rest
         else:
             if current_line is not None:
                 yield current_line
@@ -534,27 +534,27 @@ class FindxRuntimeError(FindxError):
 class MissingArgumentError(FindxSyntaxError):
     def __init__(self):
         super(MissingArgumentError, self).__init__(
-            'Missing command-line argument'
+            "Missing command-line argument"
         )
 
 
 class UnexpectedArgumentError(FindxSyntaxError):
     def __init__(self, arg, expected_arg):
         super(UnexpectedArgumentError, self).__init__(
-            'Got argument %s, expected %s'
+            "Got argument %s, expected %s"
             % (strepr(arg), strepr(expected_arg))
         )
 
 
 class MissingXargError(FindxSyntaxError):
     def __init__(self):
-        super(MissingXargError, self).__init__('Missing required xarg')
+        super(MissingXargError, self).__init__("Missing required xarg")
 
 
 class InvalidOptionError(FindxSyntaxError):
     def __init__(self, bad_option):
         super(InvalidOptionError, self).__init__(
-            'Invalid command-line option %s' % strepr(bad_option)
+            "Invalid command-line option %s" % strepr(bad_option)
         )
 
 
@@ -568,43 +568,43 @@ class PrintWithXargsError(FindxSyntaxError):
 class InvalidConfigLineError(FindxSyntaxError):
     def __init__(self, source, line, reason):
         super(InvalidConfigLineError, self).__init__(
-            'In %s for line %s: %s' % (source, strepr(line), reason)
+            "In %s for line %s: %s" % (source, strepr(line), reason)
         )
 
 
 class InvalidConfigVarError(FindxSyntaxError):
     def __init__(self, source, var):
         super(InvalidConfigVarError, self).__init__(
-            'In %s variable %s is invalid' % (source, strepr(var))
+            "In %s variable %s is invalid" % (source, strepr(var))
         )
 
 
 class InvalidConfigValueError(FindxSyntaxError):
     def __init__(self, source, var, reason):
         super(InvalidConfigValueError, self).__init__(
-            'In %s for variable %s: %s' % (source, strepr(var), reason)
+            "In %s for variable %s: %s" % (source, strepr(var), reason)
         )
 
 
 class InvalidEmptyConfigVarError(FindxSyntaxError):
     def __init__(self, var):
         super(InvalidEmptyConfigVarError, self).__init__(
-            'Variable %s must not be empty' % (strepr(var))
+            "Variable %s must not be empty" % (strepr(var))
         )
 
 
 class InvalidScalarConfigVarError(FindxSyntaxError):
     def __init__(self, var):
         super(InvalidScalarConfigVarError, self).__init__(
-            'Variable %s must be a single value' % (strepr(var))
+            "Variable %s must be a single value" % (strepr(var))
         )
 
 
 class InvalidChoiceConfigVarError(FindxSyntaxError):
     def __init__(self, var, choices):
         super(InvalidChoiceConfigVarError, self).__init__(
-            'Variable %s must be one of: %s'
-            % (strepr(var), ', '.join(choices))
+            "Variable %s must be one of: %s"
+            % (strepr(var), ", ".join(choices))
         )
 
 
@@ -618,14 +618,14 @@ class ConfigFilesUnstableError(FindxSyntaxError):
 class InvalidRootError(FindxRuntimeError):
     def __init__(self, root):
         super(InvalidRootError, self).__init__(
-            'Invalid root path %s' % strepr(root)
+            "Invalid root path %s" % strepr(root)
         )
 
 
 class ExecutableNotFoundError(FindxRuntimeError):
     def __init__(self, executable):
         super(ExecutableNotFoundError, self).__init__(
-            'Executable %s not found' % strepr(executable)
+            "Executable %s not found" % strepr(executable)
         )
 
 
@@ -669,11 +669,11 @@ def merge_find_xargs_status(find_status, xargs_status):
 
 
 def parse_raw_value(raw_value):
-    if raw_value.startswith(('+', '-', '^', '=')):
+    if raw_value.startswith(("+", "-", "^", "=")):
         op = raw_value[0]
         raw_value = raw_value[1:]
     else:
-        op = '='
+        op = "="
     value = quoted_split(raw_value)
     return op, value
 
@@ -683,10 +683,10 @@ class Settings(collections.MutableMapping):
         self._name = name
 
     def __setitem__(self, key, val):
-        raise ValueError('non-mutable Settings() class')
+        raise ValueError("non-mutable Settings() class")
 
     def __delitem__(self, key):
-        raise ValueError('non-mutable Settings() class')
+        raise ValueError("non-mutable Settings() class")
 
     @property
     def name(self):
@@ -711,12 +711,12 @@ class CommandLineSettings(Settings):
         del self._dict[key]
 
     def __init__(self):
-        super(CommandLineSettings, self).__init__('[command line]')
+        super(CommandLineSettings, self).__init__("[command line]")
         self._dict = {}
 
 
 class EnvVarSettings(Settings):
-    _prefix = 'FINDX_'
+    _prefix = "FINDX_"
 
     def __getitem__(self, key):
         env_var = self._prefix + key.upper()
@@ -731,7 +731,7 @@ class EnvVarSettings(Settings):
                 yield var[len(self._prefix) :].lower()
 
     def __init__(self):
-        super(EnvVarSettings, self).__init__('[Environment]')
+        super(EnvVarSettings, self).__init__("[Environment]")
 
 
 class TextSettings(Settings):
@@ -752,24 +752,24 @@ class TextSettings(Settings):
     def set_text(self, text):
         for line in joined_lines(text.splitlines()):
             leading_whitespace, rest = split_leading_whitespace(line)
-            if line.startswith('#') or not line:
+            if line.startswith("#") or not line:
                 # Comment or blank line.
                 pass
             elif leading_whitespace:
                 raise InvalidConfigLineError(
-                    self.name, line, 'Unexpected indentation'
+                    self.name, line, "Unexpected indentation"
                 )
-            elif '=' in line:
-                var, value = line.split('=', 1)
+            elif "=" in line:
+                var, value = line.split("=", 1)
                 var = var.rstrip()
                 value = value.lstrip()
                 if not var:
                     raise InvalidConfigLineError(
-                        self.name, line, 'Missing variable name'
+                        self.name, line, "Missing variable name"
                     )
                 elif var in self._dict:
                     raise InvalidConfigLineError(
-                        self.name, line, 'Duplicate assignment'
+                        self.name, line, "Duplicate assignment"
                     )
                 else:
                     self._dict[var] = value
@@ -779,10 +779,10 @@ class TextSettings(Settings):
 
 class FileSettings(TextSettings):
     def __init__(self, path):
-        super(FileSettings, self).__init__('config file %s' % strepr(path))
+        super(FileSettings, self).__init__("config file %s" % strepr(path))
         expanded_path = os.path.expanduser(path)
         if os.path.exists(expanded_path):
-            with open(expanded_path, 'r') as f:
+            with open(expanded_path, "r") as f:
                 self.set_text(f.read())
 
 
@@ -790,7 +790,7 @@ class Config(object):
     def __init__(self, valid_vars):
         self._command_line_settings = CommandLineSettings()
         self._env_var_settings = EnvVarSettings()
-        self._default_settings = TextSettings('[Default Settings]')
+        self._default_settings = TextSettings("[Default Settings]")
         self._default_settings.set_text(DEFAULT_CONFIG_TEXT)
         self._all_settings_files = {}
         self._config_files = []
@@ -803,7 +803,7 @@ class Config(object):
         if not self._config_files_stable:
             self._config_files_stable = True
             for i in range(10):
-                config_files = self.get('config_files')
+                config_files = self.get("config_files")
                 if config_files == self._config_files:
                     break
                 self._config_files = config_files
@@ -827,21 +827,21 @@ class Config(object):
         return self._all_settings_files[path]
 
     def _merge_values(self, parent_value, op, value):
-        if op == '+':
+        if op == "+":
             merged_value = parent_value + value
-        elif op == '^':
+        elif op == "^":
             merged_value = value + parent_value
-        elif op == '-':
+        elif op == "-":
             merged_value = parent_value[:]
             for v in value:
                 if v in merged_value:
                     merged_value.remove(v)
         else:
-            raise FindxInternalError('Invalid op %s' % strepr(op))
+            raise FindxInternalError("Invalid op %s" % strepr(op))
         return merged_value
 
     def _get(self, var, sources, op, value):
-        if op == '=':
+        if op == "=":
             return value[:]
         for source in sources:
             if var in source:
@@ -855,13 +855,13 @@ class Config(object):
             parent_value = []
         return self._merge_values(parent_value, op, value)
 
-    def get(self, var, op='+', value=[]):
+    def get(self, var, op="+", value=[]):
         return self._get(var, self._sources(), op, value)
 
     def set(self, var, op, value):
         list_value = self.get(var, op, value)
         self._command_line_settings[var] = quoted_join(list_value)
-        if var == 'config_files':
+        if var == "config_files":
             self._config_files_stable = False
 
 
@@ -937,10 +937,10 @@ class Findx(object):
         -inum -iregex -links -mmin -mtime -newer -perm -regex -regextype
         -samefile -size -type -uid -used -user -xtype
         """.split()
-    ref_types = 'aBcmt'
+    ref_types = "aBcmt"
     for x in ref_types:
         for y in ref_types:
-            TESTS_1.append('-newer%s%s' % (x, y))
+            TESTS_1.append("-newer%s%s" % (x, y))
     OPTIONS_1.extend(TESTS_1)
 
     TESTS_WITH_GLOB = """
@@ -963,11 +963,11 @@ class Findx(object):
 
     OPERATORS = UNARY_OPERATORS + BINARY_OPERATORS
 
-    RESERVED_WORDS = OPTIONS + OPERATORS + ['(', ')']
+    RESERVED_WORDS = OPTIONS + OPERATORS + ["(", ")"]
 
-    META_CHARS = '*?|,'
+    META_CHARS = "*?|,"
 
-    META_PAIRS = '[]{}'
+    META_PAIRS = "[]{}"
 
     def __init__(self):
         self.pre_path_options = []
@@ -1035,35 +1035,35 @@ class Findx(object):
                 retcode = p.poll()
             except OSError:
                 retcode = 1
-                output = b''
+                output = b""
             return retcode, output
 
     def probe_gnu_style(self, tool):
-        retcode, output = self.run_args([tool, '--version'])
-        if retcode == 0 and b'GNU' in output:
-            style = 'gnu'
+        retcode, output = self.run_args([tool, "--version"])
+        if retcode == 0 and b"GNU" in output:
+            style = "gnu"
         else:
-            style = 'bsd'
+            style = "bsd"
         return style
 
     def resolve_xargs_style(self, xargs_tool):
-        choices = ['probe', 'gnu', 'bsd', 'posix']
-        style = self.get_choice_var('xargs_style', choices)
-        if style == 'probe':
+        choices = ["probe", "gnu", "bsd", "posix"]
+        style = self.get_choice_var("xargs_style", choices)
+        if style == "probe":
             style = self.probe_gnu_style(xargs_tool)
         return style
 
     def resolve_find_style(self, find_tool):
-        choices = ['probe', 'gnu', 'bsd', 'posix']
-        style = self.get_choice_var('find_style', choices)
-        if style == 'probe':
+        choices = ["probe", "gnu", "bsd", "posix"]
+        style = self.get_choice_var("find_style", choices)
+        if style == "probe":
             style = self.probe_gnu_style(find_tool)
         return style
 
     def resolve_grep_style(self, grep_tool):
-        choices = ['probe', 'gnu', 'bsd', 'posix']
-        style = self.get_choice_var('grep_style', choices)
-        if style == 'probe':
+        choices = ["probe", "gnu", "bsd", "posix"]
+        style = self.get_choice_var("grep_style", choices)
+        if style == "probe":
             style = self.probe_gnu_style(grep_tool)
         return style
 
@@ -1081,7 +1081,7 @@ class Findx(object):
     def matches_root(self, s):
         return (
             s not in self.RESERVED_WORDS
-            and not s.startswith('-')
+            and not s.startswith("-")
             and (not self.has_meta(s) or os.path.exists(s))
         )
 
@@ -1110,7 +1110,7 @@ class Findx(object):
         return arg
 
     def launder_char_class(self, s):
-        return re.sub(r'\[[^]]*?\]', lambda m: '\x00' * len(m.group(0)), s)
+        return re.sub(r"\[[^]]*?\]", lambda m: "\x00" * len(m.group(0)), s)
 
     def find_multi(self, s, hit_list, start=0, end=None):
         """Return (hit_pos, hit_string) for first hit_string in hit_list found.
@@ -1119,7 +1119,7 @@ class Findx(object):
         """
 
         hit_pos = -1
-        hit_string = ''
+        hit_string = ""
         if end is None:
             end = len(s)
         for h in hit_list:
@@ -1136,13 +1136,13 @@ class Findx(object):
         while start < len(clean_str):
             c = clean_str[start]
             start += 1
-            if c == '{':
+            if c == "{":
                 end = start
                 depth = 1
                 while end < len(clean_str):
-                    if clean_str[end] == '{':
+                    if clean_str[end] == "{":
                         depth += 1
-                    elif clean_str[end] == '}':
+                    elif clean_str[end] == "}":
                         depth -= 1
                         if depth == 0:
                             return (start, end)
@@ -1155,7 +1155,7 @@ class Findx(object):
         while True:
             start, end = self.find_braced_range(s, start)
             if start >= 0:
-                s = s[:start] + '\x00' * (end - start) + s[end:]
+                s = s[:start] + "\x00" * (end - start) + s[end:]
                 start = end
             else:
                 break
@@ -1171,7 +1171,7 @@ class Findx(object):
         start = 0
         cut_points = []
         while start < len(clean_s):
-            hit_pos, hit_string = self.find_multi(clean_s, ['|', ','], start)
+            hit_pos, hit_string = self.find_multi(clean_s, ["|", ","], start)
             if hit_string:
                 cut_points.append(hit_pos)
                 start = hit_pos + 1
@@ -1207,7 +1207,7 @@ class Findx(object):
                     input_hopper[:0] = [pre + mid + post for mid in middles]
                     break
         if not output_hopper:
-            output_hopper.append('')
+            output_hopper.append("")
         return output_hopper
 
     def distribute_option(self, option, params):
@@ -1217,9 +1217,9 @@ class Findx(object):
             option_list = []
             for p in params:
                 if option_list:
-                    option_list.append('-o')
+                    option_list.append("-o")
                 option_list.extend([option, p])
-            option_list = ['('] + option_list + [')']
+            option_list = ["("] + option_list + [")"]
         return option_list
 
     def expand_test_with_glob(self, test, glob):
@@ -1236,7 +1236,7 @@ class Findx(object):
         elif option in self.OPTIONS_VAR:
             while True:
                 option_list.append(self.pop_arg())
-                if option_list[-1] in [';', '+']:
+                if option_list[-1] in [";", "+"]:
                     break
         elif option not in self.OPTIONS_0:
             raise InvalidOptionError(option)
@@ -1244,10 +1244,10 @@ class Findx(object):
 
     def get_optional_term(self):
         arg = self.peek_arg()
-        if arg == '(':
+        if arg == "(":
             term = [self.pop_arg()]
             term.extend(self.get_expression())
-            term.append(self.pop_expected_arg(')'))
+            term.append(self.pop_expected_arg(")"))
         elif arg in self.UNARY_OPERATORS:
             term = [self.pop_arg()]
             term.extend(self.get_term())
@@ -1256,18 +1256,18 @@ class Findx(object):
         elif arg in self.OPTIONS:
             term = self.get_option_list()
         elif self.has_meta(arg):
-            term = ['-path' if '/' in arg else '-name', self.pop_arg()]
+            term = ["-path" if "/" in arg else "-name", self.pop_arg()]
         else:
             term = []
         if term:
-            if term[0] == '-type':
+            if term[0] == "-type":
                 # Convert '-type ab' to '( -type a -o -type b )'.
                 term = self.distribute_option(term[0], list(term[1]))
             elif term[0] in self.TESTS_WITH_GLOB:
                 term = self.expand_test_with_glob(*term)
             elif term[0] in self.ACTIONS:
                 self.saw_action = True
-                if term[0] == '-print':
+                if term[0] == "-print":
                     self.saw_print = True
         return term
 
@@ -1296,63 +1296,63 @@ class Findx(object):
 
     def or_extend(self, base, extension):
         if base and extension:
-            base.append('-o')
+            base.append("-o")
         base.extend(extension)
 
     def parse_include_exclude(self, include_exclude):
         self.or_extend(include_exclude, self.get_term())
 
     def switch_to_var(self, switch):
-        return switch.lstrip('-').replace('-', '_')
+        return switch.lstrip("-").replace("-", "_")
 
     def _make_setting(self, var, value):
         quoted_value = quoted_join(value)
         if quoted_value:
-            quoted_value = ' ' + quoted_value
-        return '%s =%s' % (var, quoted_value)
+            quoted_value = " " + quoted_value
+        return "%s =%s" % (var, quoted_value)
 
     def parse_findx_args(self):
         arg = self.pop_arg()
-        if arg in ['-help', '--help']:
+        if arg in ["-help", "--help"]:
             self.show_help = True
-        elif arg in ['-version', '--version']:
+        elif arg in ["-version", "--version"]:
             self.show_version = True
-        elif arg == '-show':
+        elif arg == "-show":
             self.show = True
-        elif arg == '-show-var':
+        elif arg == "-show-var":
             var = self.pop_arg()
             print(self._make_setting(var, self.config.get(var)))
             self.shown = True
-        elif arg == '-show-vars':
+        elif arg == "-show-vars":
             for var in VALID_VARS:
                 print(self._make_setting(var, self.config.get(var)))
             self.shown = True
-        elif arg == '-show-defaults':
+        elif arg == "-show-defaults":
             print(DEFAULT_CONFIG_TEXT)
             self.shown = True
-        elif arg == '-root':
+        elif arg == "-root":
             self.roots.append(self.pop_arg())
-        elif arg == '-stdx':
-            self.push_arg_list(['-stdxd', '-stdxf'])
-        elif arg == '-stdxd':
+        elif arg == "-stdx":
+            self.push_arg_list(["-stdxd", "-stdxf"])
+        elif arg == "-stdxd":
             self.stdxd = True
-        elif arg == '-stdxf':
+        elif arg == "-stdxf":
             self.stdxf = True
-        elif arg == '-ff':
-            self.push_arg_list(['-L', '-type', 'f'])
-        elif arg == '-ffx':
-            self.push_arg_list(['-stdx', '-ff'])
-        elif arg == '-ffg':
-            self.push_arg_list(['-ffx', '-grep'])
-        elif arg == '-grep':
-            grep_tool = self.resolve_path_var('grep_path')
+        elif arg == "-ff":
+            self.push_arg_list(["-L", "-type", "f"])
+        elif arg == "-ffx":
+            self.push_arg_list(["-stdx", "-ff"])
+        elif arg == "-ffg":
+            self.push_arg_list(["-ffx", "-grep"])
+        elif arg == "-grep":
+            grep_tool = self.resolve_path_var("grep_path")
             grep_style = self.resolve_grep_style(grep_tool)
-            grep_args = self.get_var(grep_style + '_grep_args')
-            self.push_arg_list([':', grep_tool] + grep_args + ['[', ':'])
-        elif arg in ['-e', '-x']:
+            grep_args = self.get_var(grep_style + "_grep_args")
+            self.push_arg_list([":", grep_tool] + grep_args + ["[", ":"])
+        elif arg in ["-e", "-x"]:
             self.parse_include_exclude(self.excludes)
-        elif arg == '-i':
-            if self.peek_arg() == '*':
+        elif arg == "-i":
+            if self.peek_arg() == "*":
                 self.pop_arg()
                 self.includes = []
                 self.excludes = []
@@ -1368,15 +1368,15 @@ class Findx(object):
             self.post_path_options.extend(self.get_option_list())
         elif self.matches_root(arg):
             self.roots.append(arg)
-        elif arg.startswith('--'):
-            var = self.switch_to_var(arg[len('--') :])
+        elif arg.startswith("--"):
+            var = self.switch_to_var(arg[len("--") :])
             if var not in VALID_VARS:
                 raise InvalidOptionError(arg)
             raw_value = self.pop_arg()
             try:
                 op, value = parse_raw_value(raw_value)
             except ValueError as e:
-                raise InvalidConfigValueError('Command line', var, e)
+                raise InvalidConfigValueError("Command line", var, e)
             self.config.set(var, op, value)
         else:
             self.push_arg(arg)
@@ -1387,27 +1387,27 @@ class Findx(object):
         for g in globs:
             expr.extend(self.split_glob(g))
         if expr:
-            expr = self.distribute_option('-iname', expr)
+            expr = self.distribute_option("-iname", expr)
         return expr
 
     def parse_command_line(self, args):
         self.args = list(args)
         while self.args:
             arg = self.pop_arg()
-            if arg == '[' and not self.locked_in_xargs:
+            if arg == "[" and not self.locked_in_xargs:
                 self.in_xargs = False
             elif self.in_xargs:
                 self.xargs.append(arg)
                 self.need_xarg = False
-            elif arg == ']':
+            elif arg == "]":
                 self.in_xargs = True
-            elif arg == ']]':
+            elif arg == "]]":
                 self.in_xargs = True
                 self.locked_in_xargs = True
-            elif arg == ':':
+            elif arg == ":":
                 self.in_xargs = True
                 self.need_xarg = True
-            elif arg == '::':
+            elif arg == "::":
                 self.in_xargs = True
                 self.need_xarg = True
                 self.locked_in_xargs = True
@@ -1421,11 +1421,11 @@ class Findx(object):
             raise PrintWithXargsError()
 
         if not self.roots:
-            self.roots.append('.')
+            self.roots.append(".")
 
-        find_tool = self.resolve_path_var('find_path')
+        find_tool = self.resolve_path_var("find_path")
         find_style = self.resolve_find_style(find_tool)
-        have_print_zero = find_style in ['gnu', 'bsd']
+        have_print_zero = find_style in ["gnu", "bsd"]
         self.find_pipe_args = (
             [find_tool]
             + self.pre_path_options
@@ -1435,38 +1435,38 @@ class Findx(object):
 
         std_excludes = []
         if self.stdxd:
-            expr = self.iname_globs(self.get_var('stdxd'))
+            expr = self.iname_globs(self.get_var("stdxd"))
             if expr:
-                self.or_extend(std_excludes, ['-type', 'd'] + expr)
+                self.or_extend(std_excludes, ["-type", "d"] + expr)
         if self.stdxf:
-            expr = self.iname_globs(self.get_var('stdxf'))
+            expr = self.iname_globs(self.get_var("stdxf"))
             if expr:
-                self.or_extend(std_excludes, ['-not', '-type', 'd'] + expr)
+                self.or_extend(std_excludes, ["-not", "-type", "d"] + expr)
         self.or_extend(std_excludes, self.excludes)
         self.excludes = std_excludes
 
         if self.excludes:
-            self.find_pipe_args.extend(['('] + self.excludes + [')'])
+            self.find_pipe_args.extend(["("] + self.excludes + [")"])
             if self.includes:
-                self.find_pipe_args.extend(['!', '('] + self.includes + [')'])
-            self.find_pipe_args.append('-prune')
-            self.find_pipe_args.append('-o')
+                self.find_pipe_args.extend(["!", "("] + self.includes + [")"])
+            self.find_pipe_args.append("-prune")
+            self.find_pipe_args.append("-o")
         if self.expression:
-            self.expression.insert(0, '(')
-            self.expression.append(')')
+            self.expression.insert(0, "(")
+            self.expression.append(")")
         self.find_pipe_args.extend(self.expression)
         need_print = not self.saw_action and (self.xargs or self.excludes)
-        print_action = '-print'
+        print_action = "-print"
         if self.xargs:
-            xargs_tool = self.resolve_path_var('xargs_path')
+            xargs_tool = self.resolve_path_var("xargs_path")
             xargs_style = self.resolve_xargs_style(xargs_tool)
             self.xargs_pipe_args = [xargs_tool]
-            have_dash_zero = xargs_style in ['gnu', 'bsd']
+            have_dash_zero = xargs_style in ["gnu", "bsd"]
             if have_dash_zero and have_print_zero:
-                self.xargs_pipe_args.append('-0')
-                print_action = '-print0'
-            if xargs_style == 'gnu':
-                self.xargs_pipe_args.append('--no-run-if-empty')
+                self.xargs_pipe_args.append("-0")
+                print_action = "-print0"
+            if xargs_style == "gnu":
+                self.xargs_pipe_args.append("--no-run-if-empty")
             self.xargs_pipe_args.extend(self.xargs)
         else:
             self.xargs_pipe_args = []
@@ -1479,11 +1479,11 @@ class Findx(object):
         if self.show_help:
             self.help()
         elif self.show_version:
-            print('findx version %s' % __version__)
+            print("findx version %s" % __version__)
         elif self.show:
-            s = ' '.join(self.find_pipe_args)
+            s = " ".join(self.find_pipe_args)
             if self.xargs_pipe_args:
-                s += ' | ' + ' '.join(self.xargs_pipe_args)
+                s += " | " + " ".join(self.xargs_pipe_args)
             print(s)
         elif not self.shown:
             for d in self.roots:
@@ -1529,29 +1529,29 @@ def main():
             f.parse_command_line(sys.argv[1:])
             exit_status = f.run()
         except FindxSyntaxError as e:
-            warn('Error: ' + str(e))
+            warn("Error: " + str(e))
             exit_status = 1
         except FindxRuntimeError as e:
-            warn('Error: ' + str(e))
+            warn("Error: " + str(e))
             exit_status = 2
         except KeyboardInterrupt:
             exit_status = 128 + signal.SIGINT
     except Exception:
-        warn('uncaught exception:')
+        warn("uncaught exception:")
         traceback.print_exc()
         exit_status = 3
     return exit_status
 
 
 def ffx():
-    sys.argv.insert(1, '-ffx')
+    sys.argv.insert(1, "-ffx")
     return main()
 
 
 def ffg():
-    sys.argv.insert(1, '-ffg')
+    sys.argv.insert(1, "-ffg")
     return main()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
