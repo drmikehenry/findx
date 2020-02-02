@@ -1,28 +1,50 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-import os
-
 import setuptools
+import sys
+
+sys_version = tuple(sys.version_info[:2])
+min_version = (2, 6)
+if sys_version < min_version:
+    sys.exit(
+        "Python version %d.%d is too old; %d.%d or newer is required."
+        % (sys_version + min_version)
+    )
+
+
+def open_text(name):
+    if sys_version[0] == 2:
+        return open(name)
+    return open(name, encoding="utf-8")
+
 
 NAME = "findx"
 
-
-def open_file(name):
-    return open(os.path.join(os.path.dirname(__file__), name))
-
-
 __version__ = None
-for line in open_file(NAME + ".py"):
+for line in open_text("src/" + NAME + ".py"):
     if line.startswith("__version__"):
-        exec(line)
+        __version__ = line.split('"')[1]
         break
+
+with open_text("README.rst") as f:
+    long_description = f.read()
+
+with open_text("requirements.txt") as f:
+    requirements = f.read()
+
+with open_text("dev-requirements.txt") as f:
+    dev_requirements = f.read()
 
 setuptools.setup(
     name=NAME,
     version=__version__,
-    packages=setuptools.find_packages(exclude=["tests"]),
+    packages=setuptools.find_packages("src"),
+    package_dir={"": "src"},
     py_modules=[NAME],
+    python_requires=">=2.6,!=3.0.*,!=3.1.*,!=3.2.*",
+    install_requires=requirements,
+    extras_require={"dev": dev_requirements},
     entry_points={
         "console_scripts": [
             "findx=findx:main",
@@ -30,8 +52,9 @@ setuptools.setup(
             "ffg=findx:ffg",
         ],
     },
+    include_package_data=True,
     description="``findx``, an extended ``find`` command.",
-    long_description=open_file("README.rst").read(),
+    long_description=long_description,
     keywords="extended find file search",
     url="https://github.com/drmikehenry/findx",
     author="Michael Henry",
@@ -39,7 +62,7 @@ setuptools.setup(
     license="MIT",
     zip_safe=True,
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Topic :: Text Processing",
         "Topic :: Utilities",
         "Environment :: Console",
@@ -53,5 +76,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
     ],
 )
