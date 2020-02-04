@@ -4,7 +4,10 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import collections
+try:
+    from collections.abc import MutableMapping
+except ImportError:
+    from collections import MutableMapping
 import distutils.spawn
 import os
 import re
@@ -679,7 +682,7 @@ def parse_raw_value(raw_value):
     return op, value
 
 
-class Settings(collections.MutableMapping):
+class Settings(MutableMapping):
     def __init__(self, name):
         self._name = name
 
