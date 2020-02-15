@@ -8,21 +8,32 @@ import textwrap
 
 import pytest
 
+try:
+    from typing import (
+        List,
+    )
+except ImportError:
+    pass
+
 import findx
 
 
 def make_text(s):
+    # type: (str) -> str
     if s.startswith("\n"):
         s = s[1:]
     return textwrap.dedent(s)
 
 
 def make_lines(s):
+    # type: (str) -> List[str]
     return make_text(s).splitlines()
 
 
 def test_single_quoted():
+    # type: () -> None
     def s(s):
+        # type: (str) -> str
         return s.strip()
 
     assert findx.single_quoted(r"") == s(r"""               ''  """)
@@ -50,7 +61,9 @@ def test_single_quoted():
 
 
 def test_double_quoted():
+    # type: () -> None
     def s(s):
+        # type: (str) -> str
         return s.strip()
 
     assert findx.double_quoted(r"") == s(r"""               ""  """)
@@ -86,7 +99,9 @@ def test_double_quoted():
 
 
 def test_quoted():
+    # type: () -> None
     def s(s):
+        # type: (str) -> str
         return s.strip()
 
     assert findx.quoted(r"") == s(r"""        ''  """)
@@ -105,6 +120,7 @@ def test_quoted():
 
 
 def test_quote_required():
+    # type: () -> None
     assert findx.quote_required(r"")
     assert not findx.quote_required(r"oneword")
     assert not findx.quote_required(r"?with*punc.,but!no:space")
@@ -115,7 +131,9 @@ def test_quote_required():
 
 
 def test_optionally_quoted():
+    # type: () -> None
     def s(s):
+        # type: (str) -> str
         return s.strip()
 
     assert findx.optionally_quoted(r"") == s(r"""                   ''  """)
@@ -140,6 +158,7 @@ def test_optionally_quoted():
 
 
 def test_joined_lines_empty():
+    # type: () -> None
     lines = list(
         findx.joined_lines(
             make_lines(
@@ -155,6 +174,7 @@ def test_joined_lines_empty():
 
 
 def test_joined_lines_simple():
+    # type: () -> None
     lines = list(
         findx.joined_lines(
             make_lines(
@@ -174,6 +194,7 @@ def test_joined_lines_simple():
 
 
 def test_joined_lines_continuation():
+    # type: () -> None
     lines = list(
         findx.joined_lines(
             make_lines(
@@ -201,6 +222,7 @@ def test_joined_lines_continuation():
 
 
 def test_joined_lines_unexpected_indent():
+    # type: () -> None
     lines = list(
         findx.joined_lines(
             make_lines(
@@ -222,10 +244,13 @@ def test_joined_lines_unexpected_indent():
 
 
 def test_optionally_quoted_join():
+    # type: () -> None
     def s(s):
+        # type: (str) -> str
         return s.strip()
 
     def o_q_join(args):
+        # type: (List[str]) -> str
         return findx.optionally_quoted_join(args)
 
     assert o_q_join([]) == s(r"""            """)
@@ -238,16 +263,19 @@ def test_optionally_quoted_join():
 
 
 def test_quoted_split():
+    # type: () -> None
     assert findx.quoted_split("one two") == ["one", "two"]
 
 
 def test_quoted_split_plain_escapes():
+    # type: () -> None
     assert findx.quoted_split(r"one\ two") == ["one two"]
     assert findx.quoted_split(r"   one\ two   ") == ["one two"]
     assert findx.quoted_split("one\\ two\\") == ["one two\\"]
 
 
 def test_quoted_split_single_quotes():
+    # type: () -> None
     assert findx.quoted_split("""'one two'""") == ["one two"]
     assert findx.quoted_split("""one'  'two""") == ["one  two"]
     assert findx.quoted_split("""one'  '""") == ["one  "]
@@ -258,6 +286,7 @@ def test_quoted_split_single_quotes():
 
 
 def test_quoted_split_double_quotes():
+    # type: () -> None
     assert findx.quoted_split('"one two"') == ["one two"]
     assert findx.quoted_split("""one"  "two""") == ["one  two"]
     assert findx.quoted_split('one"  "') == ["one  "]
@@ -271,12 +300,14 @@ def test_quoted_split_double_quotes():
 
 
 def test_has_meta():
+    # type: () -> None
     f = findx.Findx()
     assert f.has_meta("one*")
     assert not f.has_meta("/two/three")
 
 
 def test_get_option_list():
+    # type: () -> None
     f = findx.Findx()
     f.args = ["-type", "f", "-print0", "-fprintf", "myfile", "%f"]
     option_list = f.get_option_list()
@@ -291,6 +322,7 @@ def test_get_option_list():
 
 
 def test_get_option_list_var():
+    # type: () -> None
     f = findx.Findx()
     f.args = ["-exec", "grep", "-i", ";", "word"]
     option_list = f.get_option_list()
@@ -299,6 +331,7 @@ def test_get_option_list_var():
 
 
 def test_get_option_list_underflow():
+    # type: () -> None
     f = findx.Findx()
     f.args = ["-printf"]
     with pytest.raises(findx.MissingArgumentError):
@@ -306,6 +339,7 @@ def test_get_option_list_underflow():
 
 
 def test_no_dirs():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("".split())
     assert f.expression == "".split()
@@ -313,6 +347,7 @@ def test_no_dirs():
 
 
 def test_one_dir():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("someDir".split())
     assert f.expression == "".split()
@@ -320,6 +355,7 @@ def test_one_dir():
 
 
 def test_root_dir():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("-root someRoot".split())
     assert f.expression == "".split()
@@ -327,6 +363,7 @@ def test_root_dir():
 
 
 def test_late_path():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("-print somePath anotherPath".split())
     assert f.roots == "somePath anotherPath".split()
@@ -334,6 +371,7 @@ def test_late_path():
 
 
 def test_pre_post_path_options():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("-print somePath -L anotherPath -depth".split())
     assert f.pre_path_options == "-L".split()
@@ -343,24 +381,28 @@ def test_pre_post_path_options():
 
 
 def test_simple_cmd():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("-type f -a -print0".split())
     assert f.expression == "( -type f -a -print0 )".split()
 
 
 def test_glob_name():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("*.c".split())
     assert f.expression == "( -name *.c )".split()
 
 
 def test_glob_path():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("*/*.c".split())
     assert f.expression == "( -path */*.c )".split()
 
 
 def test_exclude():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("-e -type f -name *.exe".split())
     assert f.expression == "( -name *.exe )".split()
@@ -368,6 +410,7 @@ def test_exclude():
 
 
 def test_exclude2():
+    # type: () -> None
     f = findx.Findx()
     f.parse_command_line("-print -e ( -type f -name *.exe ) -print".split())
     assert f.expression == "( -print -print )".split()
@@ -375,6 +418,7 @@ def test_exclude2():
 
 
 def test_distribute_option():
+    # type: () -> None
     f = findx.Findx()
     a = f.distribute_option("-type", ["f"])
     assert a == "-type f".split()
@@ -383,6 +427,7 @@ def test_distribute_option():
 
 
 def test_find_braced_range():
+    # type: () -> None
     f = findx.Findx()
     assert f.find_braced_range("hello") == (-1, -1)
     assert f.find_braced_range("{hello}") == (1, 6)
@@ -392,6 +437,7 @@ def test_find_braced_range():
 
 
 def test_find_multi():
+    # type: () -> None
     f = findx.Findx()
     assert f.find_multi("abcd", ["a"]) == (0, "a")
     assert f.find_multi("abcd", ["d", "c"]) == (2, "c")
@@ -400,6 +446,7 @@ def test_find_multi():
 
 
 def test_find_cut_points():
+    # type: () -> None
     f = findx.Findx()
     assert f.find_cut_points("a|b|c") == [1, 3]
     assert f.find_cut_points(",,a|b|c") == [0, 1, 3, 5]
@@ -410,6 +457,7 @@ def test_find_cut_points():
 
 
 def test_split_glob_outside_braces():
+    # type: () -> None
     f = findx.Findx()
     assert f.split_glob_outside_braces("") == [""]
     assert f.split_glob_outside_braces("one") == ["one"]
@@ -418,6 +466,7 @@ def test_split_glob_outside_braces():
 
 
 def test_split_glob():
+    # type: () -> None
     f = findx.Findx()
     assert f.split_glob("") == [""]
     assert f.split_glob("a") == ["a"]
@@ -437,6 +486,7 @@ def test_split_glob():
 
 
 def test_text_settings():
+    # type: () -> None
     ts = findx.TextSettings("name")
     ts.set_text(
         make_text(
@@ -452,6 +502,7 @@ def test_text_settings():
 
 
 def test_text_settings_invalid():
+    # type: () -> None
     ts = findx.TextSettings("name")
     with pytest.raises(findx.InvalidConfigLineError):
         ts.set_text(

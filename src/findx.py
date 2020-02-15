@@ -16,6 +16,19 @@ from subprocess import PIPE, Popen, STDOUT
 import sys
 import traceback
 
+try:
+    from typing import (
+        Dict,
+        Iterable,
+        Iterator,
+        List,
+        Optional,
+        Tuple,
+    )
+except ImportError:
+    pass
+
+
 __version__ = "0.10.0"
 
 HELP_TEXT = r"""
@@ -376,15 +389,18 @@ HELP_TEXT = HELP_TEXT.replace("__DEFAULT_CONFIG_TEXT__", DEFAULT_CONFIG_TEXT)
 
 
 def warn(message):
+    # type: (str) -> None
     print("findx: %s" % message, file=sys.stderr)
 
 
 def strepr(s):
+    # type: (str) -> str
     """repr(s) without the leading "u" for Python 2 Unicode strings."""
     return repr(s).lstrip("u")
 
 
 def single_quoted(s):
+    # type: (str) -> str
     if s == "":
         return "''"
     parts = ["" if p == "" else ("'%s'" % p) for p in s.split("'")]
@@ -392,6 +408,7 @@ def single_quoted(s):
 
 
 def double_quoted(s):
+    # type: (str) -> str
     bslash = "\\"
     bslash_count = 0
     parts = []
@@ -408,6 +425,7 @@ def double_quoted(s):
 
 
 def quoted(s):
+    # type: (str) -> str
     if "'" not in s:
         return single_quoted(s)
     else:
@@ -415,10 +433,12 @@ def quoted(s):
 
 
 def quoted_join(args):
+    # type: (List[str]) -> str
     return " ".join(quoted(arg) for arg in args)
 
 
 def quote_required(arg):
+    # type: (str) -> bool
     if arg == "":
         required = True
     else:
@@ -431,6 +451,7 @@ def quote_required(arg):
 
 
 def optionally_quoted(s):
+    # type: (str) -> str
     if quote_required(s):
         return quoted(s)
     else:
@@ -438,19 +459,23 @@ def optionally_quoted(s):
 
 
 def optionally_quoted_join(args):
+    # type: (List[str]) -> str
     return " ".join(optionally_quoted(arg) for arg in args)
 
 
 def quoted_split(value):
+    # type: (str) -> List[str]
     args = []
     quote = ""
     bslash_count = 0
     this_arg = []
 
     def keep(c):
+        # type: (str) -> None
         this_arg.append(c)
 
     def finish_arg():
+        # type: () -> None
         if this_arg:
             args.append("".join(this_arg))
             this_arg[:] = []
@@ -496,12 +521,14 @@ def quoted_split(value):
 
 
 def split_leading_whitespace(s):
+    # type: (str) -> Tuple[str, str]
     rest = s.lstrip()
     leading_whitespace = s[: -len(rest)]
     return leading_whitespace, rest
 
 
 def joined_lines(lines):
+    # type: (List[str]) -> Iterator[str]
     current_line = None
     for line in lines:
         line = line.rstrip()
@@ -537,6 +564,7 @@ class FindxRuntimeError(FindxError):
 
 class MissingArgumentError(FindxSyntaxError):
     def __init__(self):
+        # type: () -> None
         super(MissingArgumentError, self).__init__(
             "Missing command-line argument"
         )
@@ -544,6 +572,7 @@ class MissingArgumentError(FindxSyntaxError):
 
 class UnexpectedArgumentError(FindxSyntaxError):
     def __init__(self, arg, expected_arg):
+        # type: (str, str) -> None
         super(UnexpectedArgumentError, self).__init__(
             "Got argument %s, expected %s"
             % (strepr(arg), strepr(expected_arg))
@@ -552,11 +581,13 @@ class UnexpectedArgumentError(FindxSyntaxError):
 
 class MissingXargError(FindxSyntaxError):
     def __init__(self):
+        # type: () -> None
         super(MissingXargError, self).__init__("Missing required xarg")
 
 
 class InvalidOptionError(FindxSyntaxError):
     def __init__(self, bad_option):
+        # type: (str) -> None
         super(InvalidOptionError, self).__init__(
             "Invalid command-line option %s" % strepr(bad_option)
         )
@@ -564,6 +595,7 @@ class InvalidOptionError(FindxSyntaxError):
 
 class PrintWithXargsError(FindxSyntaxError):
     def __init__(self):
+        # type: () -> None
         super(PrintWithXargsError, self).__init__(
             "Cannot mix '-print' with XARGS"
         )
@@ -571,6 +603,7 @@ class PrintWithXargsError(FindxSyntaxError):
 
 class InvalidConfigLineError(FindxSyntaxError):
     def __init__(self, source, line, reason):
+        # type: (str, str, str) -> None
         super(InvalidConfigLineError, self).__init__(
             "In %s for line %s: %s" % (source, strepr(line), reason)
         )
@@ -578,6 +611,7 @@ class InvalidConfigLineError(FindxSyntaxError):
 
 class InvalidConfigVarError(FindxSyntaxError):
     def __init__(self, source, var):
+        # type: (str, str) -> None
         super(InvalidConfigVarError, self).__init__(
             "In %s variable %s is invalid" % (source, strepr(var))
         )
@@ -585,6 +619,7 @@ class InvalidConfigVarError(FindxSyntaxError):
 
 class InvalidConfigValueError(FindxSyntaxError):
     def __init__(self, source, var, reason):
+        # type: (str, str, Exception) -> None
         super(InvalidConfigValueError, self).__init__(
             "In %s for variable %s: %s" % (source, strepr(var), reason)
         )
@@ -592,6 +627,7 @@ class InvalidConfigValueError(FindxSyntaxError):
 
 class InvalidEmptyConfigVarError(FindxSyntaxError):
     def __init__(self, var):
+        # type: (str) -> None
         super(InvalidEmptyConfigVarError, self).__init__(
             "Variable %s must not be empty" % (strepr(var))
         )
@@ -599,6 +635,7 @@ class InvalidEmptyConfigVarError(FindxSyntaxError):
 
 class InvalidScalarConfigVarError(FindxSyntaxError):
     def __init__(self, var):
+        # type: (str) -> None
         super(InvalidScalarConfigVarError, self).__init__(
             "Variable %s must be a single value" % (strepr(var))
         )
@@ -606,6 +643,7 @@ class InvalidScalarConfigVarError(FindxSyntaxError):
 
 class InvalidChoiceConfigVarError(FindxSyntaxError):
     def __init__(self, var, choices):
+        # type: (str, List[str]) -> None
         super(InvalidChoiceConfigVarError, self).__init__(
             "Variable %s must be one of: %s"
             % (strepr(var), ", ".join(choices))
@@ -614,6 +652,7 @@ class InvalidChoiceConfigVarError(FindxSyntaxError):
 
 class ConfigFilesUnstableError(FindxSyntaxError):
     def __init__(self):
+        # type: () -> None
         super(ConfigFilesUnstableError, self).__init__(
             "'config_files' setting does not stabilize"
         )
@@ -621,6 +660,7 @@ class ConfigFilesUnstableError(FindxSyntaxError):
 
 class InvalidRootError(FindxRuntimeError):
     def __init__(self, root):
+        # type: (str) -> None
         super(InvalidRootError, self).__init__(
             "Invalid root path %s" % strepr(root)
         )
@@ -628,12 +668,14 @@ class InvalidRootError(FindxRuntimeError):
 
 class ExecutableNotFoundError(FindxRuntimeError):
     def __init__(self, executable):
+        # type: (str) -> None
         super(ExecutableNotFoundError, self).__init__(
             "Executable %s not found" % strepr(executable)
         )
 
 
 def must_find_executable(name):
+    # type: (str) -> str
     executable_abs_path = distutils.spawn.find_executable(name)
     if executable_abs_path is None:
         raise ExecutableNotFoundError(name)
@@ -641,6 +683,7 @@ def must_find_executable(name):
 
 
 def map_find_status(find_status):
+    # type: (int) -> int
     if 1 <= find_status <= 19:
         return 100 + find_status
     elif 20 <= find_status <= 127:
@@ -650,6 +693,7 @@ def map_find_status(find_status):
 
 
 def map_xargs_status(xargs_status):
+    # type: (int) -> int
     if xargs_status == 1:
         return 121
     elif 2 <= xargs_status <= 122:
@@ -659,6 +703,7 @@ def map_xargs_status(xargs_status):
 
 
 def merge_find_xargs_status(find_status, xargs_status):
+    # type: (int, int) -> int
     if find_status >= 128:
         exit_status = find_status
     elif xargs_status >= 128:
@@ -673,6 +718,7 @@ def merge_find_xargs_status(find_status, xargs_status):
 
 
 def parse_raw_value(raw_value):
+    # type: (str) -> Tuple[str, List[str]]
     if raw_value.startswith(("+", "-", "^", "=")):
         op = raw_value[0]
         raw_value = raw_value[1:]
@@ -684,76 +730,95 @@ def parse_raw_value(raw_value):
 
 class Settings(MutableMapping):
     def __init__(self, name):
+        # type: (str) -> None
         self._name = name
 
     def __setitem__(self, key, val):
+        # type: (str, str) -> None
         raise ValueError("non-mutable Settings() class")
 
     def __delitem__(self, key):
+        # type: (str) -> None
         raise ValueError("non-mutable Settings() class")
 
     @property
     def name(self):
+        # type: () -> str
         return self._name
 
 
 class CommandLineSettings(Settings):
     def __getitem__(self, key):
+        # type: (str) -> str
         return self._dict[key]
 
     def __len__(self):
+        # type: () -> int
         return len(self._dict)
 
     def __iter__(self):
+        # type: () -> Iterator[str]
         for var in self._dict:
             yield var
 
     def __setitem__(self, key, val):
+        # type: (str, str) -> None
         self._dict[key] = val
 
     def __delitem__(self, key):
+        # type: (str) -> None
         del self._dict[key]
 
     def __init__(self):
+        # type: () -> None
         super(CommandLineSettings, self).__init__("[command line]")
-        self._dict = {}
+        self._dict = {}  # type: Dict[str, str]
 
 
 class EnvVarSettings(Settings):
     _prefix = "FINDX_"
 
     def __getitem__(self, key):
+        # type: (str) -> str
         env_var = self._prefix + key.upper()
         return os.environ[env_var]
 
     def __len__(self):
+        # type: () -> int
         return len(list(self.__iter__()))
 
     def __iter__(self):
+        # type: () -> Iterator[str]
         for var in os.environ:
             if var.startswith(self._prefix):
                 yield var[len(self._prefix) :].lower()
 
     def __init__(self):
+        # type: () -> None
         super(EnvVarSettings, self).__init__("[Environment]")
 
 
 class TextSettings(Settings):
     def __getitem__(self, key):
+        # type: (str) -> str
         return self._dict[key]
 
     def __len__(self):
+        # type: () -> int
         return len(self._dict)
 
     def __iter__(self):
+        # type: () -> Iterator[str]
         for var in self._dict:
             yield var
 
     def __init__(self, name):
+        # type: (str) -> None
         super(TextSettings, self).__init__(name)
-        self._dict = {}
+        self._dict = {}  # type: Dict[str, str]
 
     def set_text(self, text):
+        # type: (str) -> None
         for line in joined_lines(text.splitlines()):
             leading_whitespace, rest = split_leading_whitespace(line)
             if line.startswith("#") or not line:
@@ -783,6 +848,7 @@ class TextSettings(Settings):
 
 class FileSettings(TextSettings):
     def __init__(self, path):
+        # type: (str) -> None
         super(FileSettings, self).__init__("config file %s" % strepr(path))
         expanded_path = os.path.expanduser(path)
         if os.path.exists(expanded_path):
@@ -792,16 +858,18 @@ class FileSettings(TextSettings):
 
 class Config(object):
     def __init__(self, valid_vars):
+        # type: (List[str]) -> None
         self._command_line_settings = CommandLineSettings()
         self._env_var_settings = EnvVarSettings()
         self._default_settings = TextSettings("[Default Settings]")
         self._default_settings.set_text(DEFAULT_CONFIG_TEXT)
-        self._all_settings_files = {}
-        self._config_files = []
+        self._all_settings_files = {}  # type: Dict[str, FileSettings]
+        self._config_files = []  # type: List[str]
         self._config_files_stable = False
         self._valid_vars = valid_vars
 
     def _sources(self):
+        # type: () -> Iterator[Settings]
         yield self._command_line_settings
         yield self._env_var_settings
         if not self._config_files_stable:
@@ -818,6 +886,7 @@ class Config(object):
         yield self._default_settings
 
     def _settings_file(self, path):
+        # type: (str) -> FileSettings
         if path not in self._all_settings_files:
             settings = FileSettings(path)
             for var, raw_value in settings.items():
@@ -831,6 +900,7 @@ class Config(object):
         return self._all_settings_files[path]
 
     def _merge_values(self, parent_value, op, value):
+        # type: (List[str], str, List[str]) -> List[str]
         if op == "+":
             merged_value = parent_value + value
         elif op == "^":
@@ -845,6 +915,7 @@ class Config(object):
         return merged_value
 
     def _get(self, var, sources, op, value):
+        # type: (str, Iterable[Settings], str, List[str]) -> List[str]
         if op == "=":
             return value[:]
         for source in sources:
@@ -860,9 +931,11 @@ class Config(object):
         return self._merge_values(parent_value, op, value)
 
     def get(self, var, op="+", value=[]):
+        # type: (str, str, List[str]) -> List[str]
         return self._get(var, self._sources(), op, value)
 
     def set(self, var, op, value):
+        # type: (str, str, List[str]) -> None
         list_value = self.get(var, op, value)
         self._command_line_settings[var] = quoted_join(list_value)
         if var == "config_files":
@@ -974,56 +1047,63 @@ class Findx(object):
     META_PAIRS = "[]{}"
 
     def __init__(self):
-        self.pre_path_options = []
-        self.post_path_options = []
-        self.roots = []
-        self.excludes = []
-        self.includes = []
+        # type: () -> None
+        self.pre_path_options = []  # type: List[str]
+        self.post_path_options = []  # type: List[str]
+        self.roots = []  # type: List[str]
+        self.excludes = []  # type: List[str]
+        self.includes = []  # type: List[str]
         self.saw_action = False
         self.saw_print = False
 
-        self.expression = []
+        self.expression = []  # type: List[str]
         self.in_xargs = False
         self.locked_in_xargs = False
         self.need_xarg = False
-        self.xargs = []
-        self.find_pipe_args = []
-        self.xargs_pipe_args = []
+        self.xargs = []  # type: List[str]
+        self.find_pipe_args = []  # type: List[str]
+        self.xargs_pipe_args = []  # type: List[str]
         self.show = False
         self.show_help = False
         self.show_version = False
         self.shown = False
-        self.pipe_status = None
+        self.pipe_status = None  # type: Optional[Tuple[int, ...]]
         self.config = Config(VALID_VARS)
         self.stdxd = False
         self.stdxf = False
 
     def get_var(self, var):
+        # type: (str) -> List[str]
         return self.config.get(var)
 
     def get_non_empty_var(self, var):
+        # type: (str) -> List[str]
         value = self.get_var(var)
         if not value:
             raise InvalidEmptyConfigVarError(var)
         return value
 
     def get_scalar_var(self, var):
+        # type: (str) -> str
         value = self.get_var(var)
         if len(value) != 1:
             raise InvalidScalarConfigVarError(var)
         return value[0]
 
     def get_choice_var(self, var, choices):
+        # type: (str, List[str]) -> str
         value = self.get_scalar_var(var)
         if value not in choices:
             raise InvalidChoiceConfigVarError(var, choices)
         return value
 
     def expand_path_var(self, path_var):
+        # type: (str) -> List[str]
         locations = self.get_non_empty_var(path_var)
         return [os.path.expanduser(p) for p in locations]
 
     def resolve_path_var(self, path_var):
+        # type: (str) -> str
         locations = self.expand_path_var(path_var)
         for tool in locations:
             if distutils.spawn.find_executable(tool):
@@ -1032,6 +1112,7 @@ class Findx(object):
         return locations[0]
 
     def run_args(self, args):
+        # type: (List[str]) -> Tuple[int, bytes]
         with open(os.devnull) as stdin:
             try:
                 p = Popen(args, stdin=stdin, stdout=PIPE, stderr=STDOUT)
@@ -1043,6 +1124,7 @@ class Findx(object):
             return retcode, output
 
     def probe_gnu_style(self, tool):
+        # type: (str) -> str
         retcode, output = self.run_args([tool, "--version"])
         if retcode == 0 and b"GNU" in output:
             style = "gnu"
@@ -1051,6 +1133,7 @@ class Findx(object):
         return style
 
     def resolve_xargs_style(self, xargs_tool):
+        # type: (str) -> str
         choices = ["probe", "gnu", "bsd", "posix"]
         style = self.get_choice_var("xargs_style", choices)
         if style == "probe":
@@ -1058,6 +1141,7 @@ class Findx(object):
         return style
 
     def resolve_find_style(self, find_tool):
+        # type: (str) -> str
         choices = ["probe", "gnu", "bsd", "posix"]
         style = self.get_choice_var("find_style", choices)
         if style == "probe":
@@ -1065,6 +1149,7 @@ class Findx(object):
         return style
 
     def resolve_grep_style(self, grep_tool):
+        # type: (str) -> str
         choices = ["probe", "gnu", "bsd", "posix"]
         style = self.get_choice_var("grep_style", choices)
         if style == "probe":
@@ -1072,6 +1157,7 @@ class Findx(object):
         return style
 
     def has_meta(self, s):
+        # type: (str) -> bool
         for c in self.META_CHARS:
             if c in s:
                 return True
@@ -1083,6 +1169,7 @@ class Findx(object):
         return False
 
     def matches_root(self, s):
+        # type: (str) -> bool
         return (
             s not in self.RESERVED_WORDS
             and not s.startswith("-")
@@ -1090,33 +1177,40 @@ class Findx(object):
         )
 
     def push_arg(self, arg):
+        # type: (str) -> None
         self.args.insert(0, arg)
 
     def push_arg_list(self, arg_list):
+        # type: (List[str]) -> None
         self.args[:0] = arg_list
 
     def peek_arg(self):
+        # type: () -> str
         try:
             return self.args[0]
         except IndexError:
             raise MissingArgumentError()
 
     def pop_arg(self):
+        # type: () -> str
         try:
             return self.args.pop(0)
         except IndexError:
             raise MissingArgumentError()
 
     def pop_expected_arg(self, expected_arg):
+        # type: (str) -> str
         arg = self.pop_arg()
         if arg != expected_arg:
             raise UnexpectedArgumentError(arg, expected_arg)
         return arg
 
     def launder_char_class(self, s):
+        # type: (str) -> str
         return re.sub(r"\[[^]]*?\]", lambda m: "\x00" * len(m.group(0)), s)
 
     def find_multi(self, s, hit_list, start=0, end=None):
+        # type: (str, List[str], int, Optional[int]) -> Tuple[int, str]
         """Return (hit_pos, hit_string) for first hit_string in hit_list found.
 
         Returns (-1, '') if no match.
@@ -1134,6 +1228,7 @@ class Findx(object):
         return hit_pos, hit_string
 
     def find_braced_range(self, s, start=0):
+        # type: (str, int) -> Tuple[int, int]
         """Return range (start, end) inside outermost braces."""
 
         clean_str = self.launder_char_class(s)
@@ -1154,6 +1249,7 @@ class Findx(object):
         return (-1, -1)
 
     def launder_char_class_and_braces(self, s):
+        # type: (str) -> str
         s = self.launder_char_class(s)
         start = 0
         while True:
@@ -1166,6 +1262,7 @@ class Findx(object):
         return s
 
     def find_cut_points(self, s):
+        # type: (str) -> List[int]
         """
         Scan for ',' or '|' outside of all brackets and braces,
         return list of indices of all such commas and pipes.
@@ -1184,6 +1281,7 @@ class Findx(object):
         return cut_points
 
     def split_glob_outside_braces(self, glob):
+        # type: (str) -> List[str]
         cut_points = self.find_cut_points(glob)
         pieces = []
         start = 0
@@ -1193,6 +1291,7 @@ class Findx(object):
         return pieces
 
     def split_glob(self, glob):
+        # type: (str) -> List[str]
         output_hopper = []
         input_hopper = self.split_glob_outside_braces(glob)
         while input_hopper:
@@ -1215,6 +1314,7 @@ class Findx(object):
         return output_hopper
 
     def distribute_option(self, option, params):
+        # type: (str, List[str]) -> List[str]
         if len(params) <= 1:
             option_list = [option] + params
         else:
@@ -1227,9 +1327,11 @@ class Findx(object):
         return option_list
 
     def expand_test_with_glob(self, test, glob):
+        # type: (str, str) -> List[str]
         return self.distribute_option(test, self.split_glob(glob))
 
     def get_option_list(self):
+        # type: () -> List[str]
         option = self.pop_arg()
         option_list = [option]
         if option in self.OPTIONS_1:
@@ -1247,6 +1349,7 @@ class Findx(object):
         return option_list
 
     def get_optional_term(self):
+        # type: () -> List[str]
         arg = self.peek_arg()
         if arg == "(":
             term = [self.pop_arg()]
@@ -1276,6 +1379,7 @@ class Findx(object):
         return term
 
     def get_term(self):
+        # type: () -> List[str]
         term = self.get_optional_term()
         if not term:
             if self.args:
@@ -1285,6 +1389,7 @@ class Findx(object):
         return term
 
     def get_expression(self):
+        # type: () -> List[str]
         expr = self.get_term()
         while self.args:
             if self.peek_arg() in self.BINARY_OPERATORS:
@@ -1299,23 +1404,28 @@ class Findx(object):
         return expr
 
     def or_extend(self, base, extension):
+        # type: (List[str], List[str]) -> None
         if base and extension:
             base.append("-o")
         base.extend(extension)
 
     def parse_include_exclude(self, include_exclude):
+        # type: (List[str]) -> None
         self.or_extend(include_exclude, self.get_term())
 
     def switch_to_var(self, switch):
+        # type: (str) -> str
         return switch.lstrip("-").replace("-", "_")
 
     def _make_setting(self, var, value):
+        # type: (str, List[str]) -> str
         quoted_value = quoted_join(value)
         if quoted_value:
             quoted_value = " " + quoted_value
         return "%s =%s" % (var, quoted_value)
 
     def parse_findx_args(self):
+        # type: () -> None
         arg = self.pop_arg()
         if arg in ["-help", "--help"]:
             self.show_help = True
@@ -1387,6 +1497,7 @@ class Findx(object):
             self.expression.extend(self.get_expression())
 
     def iname_globs(self, globs):
+        # type: (List[str]) -> List[str]
         expr = []
         for g in globs:
             expr.extend(self.split_glob(g))
@@ -1395,6 +1506,7 @@ class Findx(object):
         return expr
 
     def parse_command_line(self, args):
+        # type: (List[str]) -> None
         self.args = list(args)
         while self.args:
             arg = self.pop_arg()
@@ -1437,7 +1549,7 @@ class Findx(object):
             + self.post_path_options
         )
 
-        std_excludes = []
+        std_excludes = []  # type: List[str]
         if self.stdxd:
             expr = self.iname_globs(self.get_var("stdxd"))
             if expr:
@@ -1478,6 +1590,7 @@ class Findx(object):
             self.find_pipe_args.append(print_action)
 
     def run(self):
+        # type: () -> int
         self.pipe_status = None
         exit_status = 0
         if self.show_help:
@@ -1523,10 +1636,12 @@ class Findx(object):
         return exit_status
 
     def help(self):
+        # type: () -> None
         print(HELP_TEXT)
 
 
 def main():
+    # type: () -> int
     try:
         f = Findx()
         try:
@@ -1548,11 +1663,13 @@ def main():
 
 
 def ffx():
+    # type: () -> int
     sys.argv.insert(1, "-ffx")
     return main()
 
 
 def ffg():
+    # type: () -> int
     sys.argv.insert(1, "-ffg")
     return main()
 
