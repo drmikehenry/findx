@@ -262,6 +262,53 @@ def test_optionally_quoted_join():
     )
 
 
+def test_count_run():
+    # type: () -> None
+    assert findx.count_run("", lambda c: c == "h") == 0
+    assert findx.count_run("hhhhiiii", lambda c: c == "h") == 4
+
+
+def test_split_token():
+    # type: () -> None
+    assert findx.split_token("") == ("", "")
+    assert findx.split_token("x") == ("x", "")
+    assert findx.split_token("xy") == ("x", "y")
+    assert findx.split_token(" ") == (" ", "")
+    assert findx.split_token(" x") == (" ", "x")
+    assert findx.split_token(" \t") == (" \t", "")
+    assert findx.split_token(" \tx") == (" \t", "x")
+    assert findx.split_token("\\") == ("\\", "")
+    assert findx.split_token("\\\\x") == ("\\\\", "x")
+    assert findx.split_token("\\\\\\x") == ("\\\\\\", "x")
+
+
+def test_found_special_backslashes():
+    # type: () -> None
+    # Not quote mode:
+    assert not findx.found_special_backslashes("x", "", "")
+    assert not findx.found_special_backslashes("\\", "", "")
+    assert not findx.found_special_backslashes("\\", "x", "")
+    assert findx.found_special_backslashes("\\", " ", "")
+    assert findx.found_special_backslashes("\\", "'", "")
+    assert findx.found_special_backslashes("\\", '"', "")
+
+    # Single-quote mode:
+    assert not findx.found_special_backslashes("x", "", "'")
+    assert not findx.found_special_backslashes("\\", "", "'")
+    assert not findx.found_special_backslashes("\\", "x", "'")
+    assert not findx.found_special_backslashes("\\", " ", "'")
+    assert not findx.found_special_backslashes("\\", "'", "'")
+    assert not findx.found_special_backslashes("\\", '"', "'")
+
+    # Double-quote mode:
+    assert not findx.found_special_backslashes("x", "", '"')
+    assert not findx.found_special_backslashes("\\", "", '"')
+    assert not findx.found_special_backslashes("\\", "x", '"')
+    assert not findx.found_special_backslashes("\\", " ", '"')
+    assert not findx.found_special_backslashes("\\", "'", '"')
+    assert findx.found_special_backslashes("\\", '"', '"')
+
+
 def test_quoted_split():
     # type: () -> None
     assert findx.quoted_split("one two") == ["one", "two"]

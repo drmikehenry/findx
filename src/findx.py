@@ -18,6 +18,7 @@ import traceback
 
 try:
     from typing import (
+        Callable,
         Dict,
         Iterable,
         Iterator,
@@ -463,11 +464,53 @@ def optionally_quoted_join(args):
     return " ".join(optionally_quoted(arg) for arg in args)
 
 
+def count_run(s, pred):
+    # type: (str, Callable[[str], bool]) -> int
+    run_length = 0
+    for c in s:
+        if pred(c):
+            run_length += 1
+        else:
+            break
+    return run_length
+
+
+def split_token(s):
+    # type: (str) -> Tuple[str, str]
+    """
+    Return (token, rest), where token is:
+    - a maximal run of backslashes
+    - a maximal run of whitespace
+    - any other single character
+    - empty string (only when s was empty)
+    """
+    if not s:
+        return "", ""
+
+    split_at = (
+        count_run(s, lambda c: c == "\\")
+        or count_run(s, lambda c: c.isspace())
+        or 1
+    )
+
+    return s[:split_at], s[split_at:]
+
+
+def found_special_backslashes(token, value, quote):
+    # type: (str, str, str) -> bool
+    special = False
+    if token[0] == "\\" and value != "":
+        if quote == '"':
+            special = value[0] == quote
+        elif not quote:
+            special = value[0] in ("'", '"') or value[0].isspace()
+    return special
+
+
 def quoted_split(value):
     # type: (str) -> List[str]
     args = []
     quote = ""
-    bslash_count = 0
     this_arg = []
 
     def keep(c):
@@ -480,40 +523,30 @@ def quoted_split(value):
             args.append("".join(this_arg))
             this_arg[:] = []
 
-    for c in value:
-        if c == "\\":
-            bslash_count += 1
-        else:
-            if bslash_count:
-                if quote == "'":
-                    special = False
-                elif quote == '"':
-                    special = c == '"'
-                else:
-                    special = c.isspace() or c in ['"', "'"]
-                if special:
-                    keep("\\" * (bslash_count // 2))
-                    bslash_count = bslash_count % 2
-                else:
-                    keep("\\" * bslash_count)
-                    bslash_count = 0
-            if bslash_count:
-                keep(c)
-                bslash_count = 0
-            elif c == quote:
+    while value:
+        token, value = split_token(value)
+        first_token_char = token[0]
+        if found_special_backslashes(token, value, quote):
+            # Backslashes are special; keep half of them.
+            keep("\\" * (len(token) // 2))
+            if len(token) % 2:
+                # Odd number of backslashes escape value[0].
+                keep(value[0])
+                value = value[1:]
+        elif quote:
+            if first_token_char == quote:
+                # Found closing quote.
                 quote = ""
-            elif quote:
-                keep(c)
-            elif c in ['"', "'"]:
-                quote = c
-                # Keep an empty string to ensure we're in an arg.
-                keep("")
-            elif c.isspace():
-                finish_arg()
             else:
-                keep(c)
-    if bslash_count:
-        keep("\\" * bslash_count)
+                keep(token)
+        elif first_token_char in ("'", '"'):
+            quote = token
+            # Keep an empty string to ensure we're in an arg.
+            keep("")
+        elif first_token_char.isspace():
+            finish_arg()
+        else:
+            keep(first_token_char)
     if quote:
         raise ValueError("No closing quotation in %s" % strepr(value))
     finish_arg()
@@ -1424,9 +1457,9 @@ class Findx(object):
             quoted_value = " " + quoted_value
         return "%s =%s" % (var, quoted_value)
 
-    def parse_findx_args(self):
-        # type: () -> None
-        arg = self.pop_arg()
+    def parse_findx_arg_show(self, arg):
+        # type: (str) -> bool
+        parsed = True
         if arg in ["-help", "--help"]:
             self.show_help = True
         elif arg in ["-version", "--version"]:
@@ -1444,25 +1477,32 @@ class Findx(object):
         elif arg == "-show-defaults":
             print(DEFAULT_CONFIG_TEXT)
             self.shown = True
-        elif arg == "-root":
-            self.roots.append(self.pop_arg())
-        elif arg == "-stdx":
+        else:
+            parsed = False
+        return parsed
+
+    def parse_findx_arg_abbrev(self, arg):
+        # type: (str) -> bool
+        parsed = True
+        if arg == "-stdx":
             self.push_arg_list(["-stdxd", "-stdxf"])
-        elif arg == "-stdxd":
-            self.stdxd = True
-        elif arg == "-stdxf":
-            self.stdxf = True
         elif arg == "-ff":
             self.push_arg_list(["-L", "-type", "f"])
         elif arg == "-ffx":
             self.push_arg_list(["-stdx", "-ff"])
         elif arg == "-ffg":
             self.push_arg_list(["-ffx", "-grep"])
-        elif arg == "-grep":
-            grep_tool = self.resolve_path_var("grep_path")
-            grep_style = self.resolve_grep_style(grep_tool)
-            grep_args = self.get_var(grep_style + "_grep_args")
-            self.push_arg_list([":", grep_tool] + grep_args + ["[", ":"])
+        else:
+            parsed = False
+        return parsed
+
+    def parse_findx_arg_exclude(self, arg):
+        # type: (str) -> bool
+        parsed = True
+        if arg == "-stdxd":
+            self.stdxd = True
+        elif arg == "-stdxf":
+            self.stdxf = True
         elif arg in ["-e", "-x"]:
             self.parse_include_exclude(self.excludes)
         elif arg == "-i":
@@ -1474,6 +1514,25 @@ class Findx(object):
                 self.stdxf = False
             else:
                 self.parse_include_exclude(self.includes)
+        else:
+            parsed = False
+        return parsed
+
+    def parse_findx_arg(self, arg):
+        # type: (str) -> None
+        if self.parse_findx_arg_show(arg):
+            pass
+        elif self.parse_findx_arg_abbrev(arg):
+            pass
+        elif self.parse_findx_arg_exclude(arg):
+            pass
+        elif arg == "-root":
+            self.roots.append(self.pop_arg())
+        elif arg == "-grep":
+            grep_tool = self.resolve_path_var("grep_path")
+            grep_style = self.resolve_grep_style(grep_tool)
+            grep_args = self.get_var(grep_style + "_grep_args")
+            self.push_arg_list([":", grep_tool] + grep_args + ["[", ":"])
         elif arg in self.PRE_PATH_OPTIONS:
             self.push_arg(arg)
             self.pre_path_options.extend(self.get_option_list())
@@ -1505,7 +1564,7 @@ class Findx(object):
             expr = self.distribute_option("-iname", expr)
         return expr
 
-    def parse_command_line(self, args):
+    def parse_findx_args(self, args):
         # type: (List[str]) -> None
         self.args = list(args)
         while self.args:
@@ -1528,8 +1587,7 @@ class Findx(object):
                 self.need_xarg = True
                 self.locked_in_xargs = True
             else:
-                self.push_arg(arg)
-                self.parse_findx_args()
+                self.parse_findx_arg(arg)
         if self.need_xarg:
             raise MissingXargError()
 
@@ -1539,6 +1597,9 @@ class Findx(object):
         if not self.roots:
             self.roots.append(".")
 
+    def parse_command_line(self, args):
+        # type: (List[str]) -> None
+        self.parse_findx_args(args)
         find_tool = self.resolve_path_var("find_path")
         find_style = self.resolve_find_style(find_tool)
         have_print_zero = find_style in ["gnu", "bsd"]
