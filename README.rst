@@ -1,6 +1,18 @@
 findx - an extended ``find`` command.
 =====================================
 
+.. image:: https://travis-ci.org/drmikehenry/findx.svg
+    :target: https://travis-ci.org/drmikehenry/findx
+
+.. image:: https://img.shields.io/pypi/v/findx.svg
+    :target: https://pypi.python.org/pypi/findx
+
+.. image:: https://img.shields.io/pypi/status/findx.svg
+    :target: https://pypi.python.org/pypi/findx
+
+.. image:: https://img.shields.io/pypi/pyversions/findx.svg
+    :target: https://pypi.python.org/pypi/findx/
+
 Overview
 --------
 
