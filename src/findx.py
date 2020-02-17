@@ -96,6 +96,7 @@ OPTIONS
 
   -help, --help         print this usage help and terminate
   -version, --version   print version of findx and terminate
+  -readme,--readme      print findx README.rst
   -show                 show command without executing it
   -show-var VAR         show current value of variable VAR
   -show-vars            show values of all variables
@@ -761,6 +762,30 @@ def parse_raw_value(raw_value):
     return op, value
 
 
+def readme():
+    # type: () -> None
+    import pkg_resources
+    import email
+    import textwrap
+
+    try:
+        dist = pkg_resources.get_distribution("findx")
+        meta = dist.get_metadata(dist.PKG_INFO)
+    except (pkg_resources.DistributionNotFound, FileNotFoundError):
+        print("Cannot access README (try installing via pip or setup.py)")
+        return
+    msg = email.message_from_string(meta)
+    desc = msg.get("Description", "").strip()
+    if not desc and not msg.is_multipart():
+        desc = msg.get_payload().strip()
+    if not desc:
+        desc = "No README found"
+    if "\n" in desc:
+        first, rest = desc.split("\n", 1)
+        desc = "\n".join([first, textwrap.dedent(rest)])
+    print(desc)
+
+
 class Settings(MutableMapping):
     def __init__(self, name):
         # type: (str) -> None
@@ -1099,6 +1124,7 @@ class Findx(object):
         self.show = False
         self.show_help = False
         self.show_version = False
+        self.show_readme = False
         self.shown = False
         self.pipe_status = None  # type: Optional[Tuple[int, ...]]
         self.config = Config(VALID_VARS)
@@ -1464,6 +1490,8 @@ class Findx(object):
             self.show_help = True
         elif arg in ["-version", "--version"]:
             self.show_version = True
+        elif arg in ["-readme", "--readme"]:
+            self.show_readme = True
         elif arg == "-show":
             self.show = True
         elif arg == "-show-var":
@@ -1658,6 +1686,8 @@ class Findx(object):
             self.help()
         elif self.show_version:
             print("findx version %s" % __version__)
+        elif self.show_readme:
+            readme()
         elif self.show:
             s = " ".join(self.find_pipe_args)
             if self.xargs_pipe_args:
