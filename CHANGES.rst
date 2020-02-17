@@ -2,6 +2,12 @@
 History
 *******
 
+Version 0.10.2
+==============
+
+- Small cleanups: update copyright dates, remove unnecessary .gitignore, add
+  type hints to setup.py, remove Makefile.
+
 Version 0.10.1
 ==============
 
