@@ -2,6 +2,25 @@
 History
 *******
 
+Version 0.10.1
+==============
+
+- Update CHANGES.rst.
+
+Version 0.10.0
+==============
+
+- Update Python-related tooling (black, mypy with type-hinting comments, pytest,
+  tox, coverage).
+
+- Reorganize source tree to use ``src/`` subdirectory.
+
+- Support Python 3.8.
+
+- Add "--readme" command to display the top-level README.rst.
+
+- Restructure code to reduce cyclomatic complexity.
+
 Version 0.9.11
 ==============
 

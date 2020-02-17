@@ -30,7 +30,7 @@ except ImportError:
     pass
 
 
-__version__ = "0.10.0"
+__version__ = "0.10.1"
 
 HELP_TEXT = r"""
 Usage: findx [OPTION | FINDOPTION | ROOT | METAGLOB]*
