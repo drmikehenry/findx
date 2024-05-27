@@ -2,6 +2,24 @@
 History
 *******
 
+Version 0.11.0
+==============
+
+- Require Python 3.8+.  Support for Python2.x has been removed.
+
+- Switch to Poetry and Nox.
+
+- Add the following directories to the default ``stdxd`` variable::
+
+    .nox .ruff_cache venv .venv
+
+- Add support for creating executables via PyInstaller.
+
+- Add continuous integration via GitHub actions.
+
+- Build Linux executables in a Docker container running Ubuntu 18.04 to support
+  a broader range of Linux distributions.
+
 Version 0.10.2
 ==============
 
