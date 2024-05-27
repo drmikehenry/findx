@@ -392,12 +392,6 @@ def warn(message):
     print("findx: %s" % message, file=sys.stderr)
 
 
-def strepr(s):
-    # type: (str) -> str
-    """repr(s) without the leading "u" for Python 2 Unicode strings."""
-    return repr(s).lstrip("u")
-
-
 def single_quoted(s):
     # type: (str) -> str
     if s == "":
@@ -546,7 +540,7 @@ def quoted_split(value):
         else:
             keep(first_token_char)
     if quote:
-        raise ValueError("No closing quotation in %s" % strepr(value))
+        raise ValueError("No closing quotation in %s" % repr(value))
     finish_arg()
     return args
 
@@ -606,7 +600,7 @@ class UnexpectedArgumentError(FindxSyntaxError):
         # type: (str, str) -> None
         super().__init__(
             "Got argument %s, expected %s"
-            % (strepr(arg), strepr(expected_arg))
+            % (repr(arg), repr(expected_arg))
         )
 
 
@@ -620,7 +614,7 @@ class InvalidOptionError(FindxSyntaxError):
     def __init__(self, bad_option):
         # type: (str) -> None
         super().__init__(
-            "Invalid command-line option %s" % strepr(bad_option)
+            "Invalid command-line option %s" % repr(bad_option)
         )
 
 
@@ -636,7 +630,7 @@ class InvalidConfigLineError(FindxSyntaxError):
     def __init__(self, source, line, reason):
         # type: (str, str, str) -> None
         super().__init__(
-            "In {} for line {}: {}".format(source, strepr(line), reason)
+            "In {} for line {}: {}".format(source, repr(line), reason)
         )
 
 
@@ -644,7 +638,7 @@ class InvalidConfigVarError(FindxSyntaxError):
     def __init__(self, source, var):
         # type: (str, str) -> None
         super().__init__(
-            "In {} variable {} is invalid".format(source, strepr(var))
+            "In {} variable {} is invalid".format(source, repr(var))
         )
 
 
@@ -652,7 +646,7 @@ class InvalidConfigValueError(FindxSyntaxError):
     def __init__(self, source, var, reason):
         # type: (str, str, Exception) -> None
         super().__init__(
-            "In {} for variable {}: {}".format(source, strepr(var), reason)
+            "In {} for variable {}: {}".format(source, repr(var), reason)
         )
 
 
@@ -660,7 +654,7 @@ class InvalidEmptyConfigVarError(FindxSyntaxError):
     def __init__(self, var):
         # type: (str) -> None
         super().__init__(
-            "Variable %s must not be empty" % (strepr(var))
+            "Variable %s must not be empty" % (repr(var))
         )
 
 
@@ -668,7 +662,7 @@ class InvalidScalarConfigVarError(FindxSyntaxError):
     def __init__(self, var):
         # type: (str) -> None
         super().__init__(
-            "Variable %s must be a single value" % (strepr(var))
+            "Variable %s must be a single value" % (repr(var))
         )
 
 
@@ -677,7 +671,7 @@ class InvalidChoiceConfigVarError(FindxSyntaxError):
         # type: (str, List[str]) -> None
         super().__init__(
             "Variable %s must be one of: %s"
-            % (strepr(var), ", ".join(choices))
+            % (repr(var), ", ".join(choices))
         )
 
 
@@ -693,7 +687,7 @@ class InvalidRootError(FindxRuntimeError):
     def __init__(self, root):
         # type: (str) -> None
         super().__init__(
-            "Invalid root path %s" % strepr(root)
+            "Invalid root path %s" % repr(root)
         )
 
 
@@ -701,7 +695,7 @@ class ExecutableNotFoundError(FindxRuntimeError):
     def __init__(self, executable):
         # type: (str) -> None
         super().__init__(
-            "Executable %s not found" % strepr(executable)
+            "Executable %s not found" % repr(executable)
         )
 
 
@@ -902,7 +896,7 @@ class TextSettings(Settings):
 class FileSettings(TextSettings):
     def __init__(self, path):
         # type: (str) -> None
-        super().__init__("config file %s" % strepr(path))
+        super().__init__("config file %s" % repr(path))
         expanded_path = os.path.expanduser(path)
         if os.path.exists(expanded_path):
             with open(expanded_path) as f:
@@ -964,7 +958,7 @@ class Config:
                 if v in merged_value:
                     merged_value.remove(v)
         else:
-            raise FindxInternalError("Invalid op %s" % strepr(op))
+            raise FindxInternalError("Invalid op %s" % repr(op))
         return merged_value
 
     def _get(self, var, sources, op, value):
