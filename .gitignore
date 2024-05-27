@@ -2,9 +2,8 @@
 *.pyc
 /.coverage
 /.coverage.py*
-/.tox/
+/.nox/
 /build/
 /dist/
 /htmlcov/
 __pycache__/
-/.pyuser/

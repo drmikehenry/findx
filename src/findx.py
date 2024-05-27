@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import collections.abc
-import distutils.spawn
 import os
 import re
+import shutil
 import signal
 from subprocess import PIPE, Popen, STDOUT
 import sys
@@ -636,7 +636,7 @@ class ExecutableNotFoundError(FindxRuntimeError):
 
 
 def must_find_executable(name: str) -> str:
-    executable_abs_path = distutils.spawn.find_executable(name)
+    executable_abs_path = shutil.which(name)
     if executable_abs_path is None:
         raise ExecutableNotFoundError(name)
     return executable_abs_path
@@ -740,7 +740,7 @@ class CommandLineSettings(Settings):
 
     def __init__(self) -> None:
         super().__init__("[command line]")
-        self._dict:T.Dict[str, str] = {}
+        self._dict: T.Dict[str, str] = {}
 
 
 class EnvVarSettings(Settings):
@@ -1060,7 +1060,7 @@ class Findx:
     def resolve_path_var(self, path_var: str) -> str:
         locations = self.expand_path_var(path_var)
         for tool in locations:
-            if distutils.spawn.find_executable(tool):
+            if shutil.which(tool):
                 return tool
         # Not found; fall back to first configured location.
         return locations[0]
