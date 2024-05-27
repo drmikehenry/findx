@@ -11,6 +11,7 @@ import sys
 import traceback
 import typing as T
 
+project_name = "findx"
 
 HELP_TEXT = r"""
 Usage: findx [OPTION | FINDOPTION | ROOT | METAGLOB]*
@@ -371,7 +372,7 @@ HELP_TEXT = HELP_TEXT.replace("__DEFAULT_CONFIG_TEXT__", DEFAULT_CONFIG_TEXT)
 
 
 def warn(message: str) -> None:
-    print("findx: %s" % message, file=sys.stderr)
+    print("%s: %s" % (project_name, message), file=sys.stderr)
 
 
 def single_quoted(s: str) -> str:
@@ -683,26 +684,53 @@ def parse_raw_value(raw_value: str) -> T.Tuple[str, T.List[str]]:
     return op, value
 
 
-def readme() -> None:
-    import pkg_resources
+# For Python 3.10+.
+# This fails on Python 3.8 and 3.9 for `poetry install` and `pip install`.
+# It works, however, for PyInstaller builds for Python 3.8+.
+def readme_from_importlib() -> str:
+    meta = importlib.metadata.metadata(project_name)
+    text = meta["Description"] or ""
+    return text.strip()
+
+
+# Required on Python 3.8 and 3.9 for `poetry install`, `pip install`.
+def readme_from_pkg_resources() -> str:
     import email
     import textwrap
 
     try:
-        dist = pkg_resources.get_distribution("findx")
+        # `pkg_resources` comes from `setuptools` which might not be installed.
+        # It is also deprecated. so we squelch warnings during import.
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            import pkg_resources
+    except ImportError:
+        return ""
+
+    try:
+        dist = pkg_resources.get_distribution(project_name)
         meta = dist.get_metadata(dist.PKG_INFO)
     except (pkg_resources.DistributionNotFound, FileNotFoundError):
-        print("Cannot access README (try installing via pip or setup.py)")
-        return
+        return ""
     msg = email.message_from_string(meta)
     desc = msg.get("Description", "").strip()
-    if not desc and not msg.is_multipart():
-        desc = msg.get_payload().strip()
-    if not desc:
-        desc = "No README found"
+    payload = msg.get_payload()
+    if not desc and isinstance(payload, str):
+        desc = payload.strip()
     if "\n" in desc:
         first, rest = desc.split("\n", 1)
         desc = "\n".join([first, textwrap.dedent(rest)])
+    return desc
+
+
+def readme() -> None:
+    desc = readme_from_importlib()
+    if not desc:
+        desc = readme_from_pkg_resources()
+    if not desc:
+        desc = "README.rst is not available."
     print(desc)
 
 
@@ -1550,7 +1578,10 @@ class Findx:
         if self.show_help:
             self.help()
         elif self.show_version:
-            print("findx version %s" % importlib.metadata.version("findx"))
+            print(
+                "%s version %s"
+                % (project_name, importlib.metadata.version(project_name))
+            )
         elif self.show_readme:
             readme()
         elif self.show:
