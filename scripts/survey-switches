@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Heuristic to help find new switches.
+
+( man find; find --help; printf '%s\n' -a -and -o -or ) |
+    perl -pe 's/-perm -/-perm /g' |
+    perl -pe 's/,/\n/g' |
+    perl -ne 'if (m/^\s*(--?[a-z][-a-z0-9_]*)/i) { print "$1\n"; }' |
+    grep -Pv '^(-dils|-n|-O)$' |
+    sort -u

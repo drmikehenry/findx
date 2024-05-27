@@ -38,3 +38,18 @@ Upgrading dependencies
 ======================
 
 - ``poetry upgrade``.
+
+Updating switches for new ``find``
+==================================
+
+- ``findx`` understands the switches documented in GNU ``find --help``.  These
+  are recorded in ``gnu-find-switches.txt``, along with the associated version
+  number from ``find --version`` as follows::
+
+    (find --version; find --help) > gnu-find-switches.txt
+
+- Repeat the above with a newer version of ``find`` and compare differences to
+  see what changes have been made to the switches.
+
+- Use ``scripts/survey-switches`` to scan the manpage and the ``--help`` output
+  for new switches.  The result is stored in ``doc/allswitches.txt``.

@@ -5,15 +5,19 @@
 -atime
 -cmin
 -cnewer
+-context
 -ctime
 -d
+-D
 -daystart
 -delete
 -depth
 -empty
 -exec
 -execdir
+-executable
 -false
+-files0-from
 -fls
 -follow
 -fprint
@@ -23,8 +27,8 @@
 -gid
 -group
 -H
--help
 --help
+-help
 -ignore_readdir_race
 -ilname
 -iname
@@ -43,6 +47,7 @@
 -mtime
 -name
 -newer
+-newerXY
 -nogroup
 -noignore_readdir_race
 -noleaf
@@ -52,6 +57,7 @@
 -o
 -ok
 -okdir
+-Olevel
 -or
 -P
 -path
@@ -61,6 +67,7 @@
 -printf
 -prune
 -quit
+-readable
 -regex
 -regextype
 -samefile
@@ -70,9 +77,10 @@
 -uid
 -used
 -user
--version
 --version
+-version
 -warn
 -wholename
+-writable
 -xdev
 -xtype

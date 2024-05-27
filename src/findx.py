@@ -938,7 +938,7 @@ class Findx:
     OPTIONS_0.extend(PRE_PATH_OPTIONS_0)
 
     PRE_PATH_OPTIONS_1 = """
-        -D
+        -D --files0-from
         """.split()
     OPTIONS_1.extend(PRE_PATH_OPTIONS_1)
 
@@ -947,7 +947,7 @@ class Findx:
     # POST_PATH_OPTIONS must come immediately after any paths.
     POST_PATH_OPTIONS_0 = """
         -d -depth --help -help -ignore_readdir_race -mount
-        -noignore_readdir_race -noleaf -nowarn --version --version -warn
+        -noignore_readdir_race -noleaf -nowarn -version --version -warn
         -xautofs -xdev
         """.split()
     OPTIONS_0.extend(POST_PATH_OPTIONS_0)
