@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import collections.abc
+import importlib.metadata
 import os
 import re
 import shutil
@@ -10,8 +11,6 @@ import sys
 import traceback
 import typing as T
 
-
-__version__ = "0.11.0"
 
 HELP_TEXT = r"""
 Usage: findx [OPTION | FINDOPTION | ROOT | METAGLOB]*
@@ -1551,7 +1550,7 @@ class Findx:
         if self.show_help:
             self.help()
         elif self.show_version:
-            print("findx version %s" % __version__)
+            print("findx version %s" % importlib.metadata.version("findx"))
         elif self.show_readme:
             readme()
         elif self.show:
