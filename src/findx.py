@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
-
-try:
-    from collections.abc import MutableMapping
-except ImportError:
-    from collections.abc import MutableMapping
+import collections.abc
 import distutils.spawn
 import os
 import re
@@ -12,19 +8,7 @@ import signal
 from subprocess import PIPE, Popen, STDOUT
 import sys
 import traceback
-
-try:
-    from typing import (
-        Callable,
-        Dict,
-        Iterable,
-        Iterator,
-        List,
-        Optional,
-        Tuple,
-    )
-except ImportError:
-    pass
+import typing as T
 
 
 __version__ = "0.11.0"
@@ -387,21 +371,18 @@ VALID_VARS = re.findall(r"^\w+", DEFAULT_CONFIG_TEXT, re.MULTILINE)
 HELP_TEXT = HELP_TEXT.replace("__DEFAULT_CONFIG_TEXT__", DEFAULT_CONFIG_TEXT)
 
 
-def warn(message):
-    # type: (str) -> None
+def warn(message: str) -> None:
     print("findx: %s" % message, file=sys.stderr)
 
 
-def single_quoted(s):
-    # type: (str) -> str
+def single_quoted(s: str) -> str:
     if s == "":
         return "''"
     parts = ["" if p == "" else ("'%s'" % p) for p in s.split("'")]
     return "\\'".join(parts)
 
 
-def double_quoted(s):
-    # type: (str) -> str
+def double_quoted(s: str) -> str:
     bslash = "\\"
     bslash_count = 0
     parts = []
@@ -417,21 +398,18 @@ def double_quoted(s):
     return '"%s"' % ("".join(parts))
 
 
-def quoted(s):
-    # type: (str) -> str
+def quoted(s: str) -> str:
     if "'" not in s:
         return single_quoted(s)
     else:
         return double_quoted(s)
 
 
-def quoted_join(args):
-    # type: (List[str]) -> str
+def quoted_join(args: T.List[str]) -> str:
     return " ".join(quoted(arg) for arg in args)
 
 
-def quote_required(arg):
-    # type: (str) -> bool
+def quote_required(arg: str) -> bool:
     if arg == "":
         required = True
     else:
@@ -443,21 +421,18 @@ def quote_required(arg):
     return required
 
 
-def optionally_quoted(s):
-    # type: (str) -> str
+def optionally_quoted(s: str) -> str:
     if quote_required(s):
         return quoted(s)
     else:
         return s
 
 
-def optionally_quoted_join(args):
-    # type: (List[str]) -> str
+def optionally_quoted_join(args: T.List[str]) -> str:
     return " ".join(optionally_quoted(arg) for arg in args)
 
 
-def count_run(s, pred):
-    # type: (str, Callable[[str], bool]) -> int
+def count_run(s: str, pred: T.Callable[[str], bool]) -> int:
     run_length = 0
     for c in s:
         if pred(c):
@@ -467,8 +442,7 @@ def count_run(s, pred):
     return run_length
 
 
-def split_token(s):
-    # type: (str) -> Tuple[str, str]
+def split_token(s: str) -> T.Tuple[str, str]:
     """
     Return (token, rest), where token is:
     - a maximal run of backslashes
@@ -488,8 +462,7 @@ def split_token(s):
     return s[:split_at], s[split_at:]
 
 
-def found_special_backslashes(token, value, quote):
-    # type: (str, str, str) -> bool
+def found_special_backslashes(token: str, value: str, quote: str) -> bool:
     special = False
     if token[0] == "\\" and value != "":
         if quote == '"':
@@ -499,18 +472,15 @@ def found_special_backslashes(token, value, quote):
     return special
 
 
-def quoted_split(value):
-    # type: (str) -> List[str]
+def quoted_split(value: str) -> T.List[str]:
     args = []
     quote = ""
     this_arg = []
 
-    def keep(c):
-        # type: (str) -> None
+    def keep(c: str) -> None:
         this_arg.append(c)
 
-    def finish_arg():
-        # type: () -> None
+    def finish_arg() -> None:
         if this_arg:
             args.append("".join(this_arg))
             this_arg[:] = []
@@ -545,15 +515,13 @@ def quoted_split(value):
     return args
 
 
-def split_leading_whitespace(s):
-    # type: (str) -> Tuple[str, str]
+def split_leading_whitespace(s: str) -> T.Tuple[str, str]:
     rest = s.lstrip()
     leading_whitespace = s[: -len(rest)]
     return leading_whitespace, rest
 
 
-def joined_lines(lines):
-    # type: (List[str]) -> Iterator[str]
+def joined_lines(lines: T.List[str]) -> T.Iterator[str]:
     current_line = None
     for line in lines:
         line = line.rstrip()
@@ -588,127 +556,93 @@ class FindxRuntimeError(FindxError):
 
 
 class MissingArgumentError(FindxSyntaxError):
-    def __init__(self):
-        # type: () -> None
-        super().__init__(
-            "Missing command-line argument"
-        )
+    def __init__(self) -> None:
+        super().__init__("Missing command-line argument")
 
 
 class UnexpectedArgumentError(FindxSyntaxError):
-    def __init__(self, arg, expected_arg):
-        # type: (str, str) -> None
+    def __init__(self, arg: str, expected_arg: str) -> None:
         super().__init__(
-            "Got argument %s, expected %s"
-            % (repr(arg), repr(expected_arg))
+            "Got argument %s, expected %s" % (repr(arg), repr(expected_arg))
         )
 
 
 class MissingXargError(FindxSyntaxError):
-    def __init__(self):
-        # type: () -> None
+    def __init__(self) -> None:
         super().__init__("Missing required xarg")
 
 
 class InvalidOptionError(FindxSyntaxError):
-    def __init__(self, bad_option):
-        # type: (str) -> None
-        super().__init__(
-            "Invalid command-line option %s" % repr(bad_option)
-        )
+    def __init__(self, bad_option: str) -> None:
+        super().__init__("Invalid command-line option %s" % repr(bad_option))
 
 
 class PrintWithXargsError(FindxSyntaxError):
-    def __init__(self):
-        # type: () -> None
-        super().__init__(
-            "Cannot mix '-print' with XARGS"
-        )
+    def __init__(self) -> None:
+        super().__init__("Cannot mix '-print' with XARGS")
 
 
 class InvalidConfigLineError(FindxSyntaxError):
-    def __init__(self, source, line, reason):
-        # type: (str, str, str) -> None
+    def __init__(self, source: str, line: str, reason: str) -> None:
         super().__init__(
             "In {} for line {}: {}".format(source, repr(line), reason)
         )
 
 
 class InvalidConfigVarError(FindxSyntaxError):
-    def __init__(self, source, var):
-        # type: (str, str) -> None
+    def __init__(self, source: str, var: str) -> None:
         super().__init__(
             "In {} variable {} is invalid".format(source, repr(var))
         )
 
 
 class InvalidConfigValueError(FindxSyntaxError):
-    def __init__(self, source, var, reason):
-        # type: (str, str, Exception) -> None
+    def __init__(self, source: str, var: str, reason: Exception) -> None:
         super().__init__(
             "In {} for variable {}: {}".format(source, repr(var), reason)
         )
 
 
 class InvalidEmptyConfigVarError(FindxSyntaxError):
-    def __init__(self, var):
-        # type: (str) -> None
-        super().__init__(
-            "Variable %s must not be empty" % (repr(var))
-        )
+    def __init__(self, var: str) -> None:
+        super().__init__("Variable %s must not be empty" % (repr(var)))
 
 
 class InvalidScalarConfigVarError(FindxSyntaxError):
-    def __init__(self, var):
-        # type: (str) -> None
-        super().__init__(
-            "Variable %s must be a single value" % (repr(var))
-        )
+    def __init__(self, var: str) -> None:
+        super().__init__("Variable %s must be a single value" % (repr(var)))
 
 
 class InvalidChoiceConfigVarError(FindxSyntaxError):
-    def __init__(self, var, choices):
-        # type: (str, List[str]) -> None
+    def __init__(self, var: str, choices: T.List[str]) -> None:
         super().__init__(
-            "Variable %s must be one of: %s"
-            % (repr(var), ", ".join(choices))
+            "Variable %s must be one of: %s" % (repr(var), ", ".join(choices))
         )
 
 
 class ConfigFilesUnstableError(FindxSyntaxError):
-    def __init__(self):
-        # type: () -> None
-        super().__init__(
-            "'config_files' setting does not stabilize"
-        )
+    def __init__(self) -> None:
+        super().__init__("'config_files' setting does not stabilize")
 
 
 class InvalidRootError(FindxRuntimeError):
-    def __init__(self, root):
-        # type: (str) -> None
-        super().__init__(
-            "Invalid root path %s" % repr(root)
-        )
+    def __init__(self, root: str) -> None:
+        super().__init__("Invalid root path %s" % repr(root))
 
 
 class ExecutableNotFoundError(FindxRuntimeError):
-    def __init__(self, executable):
-        # type: (str) -> None
-        super().__init__(
-            "Executable %s not found" % repr(executable)
-        )
+    def __init__(self, executable: str) -> None:
+        super().__init__("Executable %s not found" % repr(executable))
 
 
-def must_find_executable(name):
-    # type: (str) -> str
+def must_find_executable(name: str) -> str:
     executable_abs_path = distutils.spawn.find_executable(name)
     if executable_abs_path is None:
         raise ExecutableNotFoundError(name)
     return executable_abs_path
 
 
-def map_find_status(find_status):
-    # type: (int) -> int
+def map_find_status(find_status: int) -> int:
     if 1 <= find_status <= 19:
         return 100 + find_status
     elif 20 <= find_status <= 127:
@@ -717,8 +651,7 @@ def map_find_status(find_status):
         return find_status
 
 
-def map_xargs_status(xargs_status):
-    # type: (int) -> int
+def map_xargs_status(xargs_status: int) -> int:
     if xargs_status == 1:
         return 121
     elif 2 <= xargs_status <= 122:
@@ -727,8 +660,7 @@ def map_xargs_status(xargs_status):
         return xargs_status
 
 
-def merge_find_xargs_status(find_status, xargs_status):
-    # type: (int, int) -> int
+def merge_find_xargs_status(find_status: int, xargs_status: int) -> int:
     if find_status >= 128:
         exit_status = find_status
     elif xargs_status >= 128:
@@ -742,8 +674,7 @@ def merge_find_xargs_status(find_status, xargs_status):
     return exit_status
 
 
-def parse_raw_value(raw_value):
-    # type: (str) -> Tuple[str, List[str]]
+def parse_raw_value(raw_value: str) -> T.Tuple[str, T.List[str]]:
     if raw_value.startswith(("+", "-", "^", "=")):
         op = raw_value[0]
         raw_value = raw_value[1:]
@@ -753,8 +684,7 @@ def parse_raw_value(raw_value):
     return op, value
 
 
-def readme():
-    # type: () -> None
+def readme() -> None:
     import pkg_resources
     import email
     import textwrap
@@ -777,95 +707,76 @@ def readme():
     print(desc)
 
 
-class Settings(MutableMapping):
-    def __init__(self, name):
-        # type: (str) -> None
+class Settings(collections.abc.MutableMapping):
+    def __init__(self, name: str) -> None:
         self._name = name
 
-    def __setitem__(self, key, val):
-        # type: (str, str) -> None
+    def __setitem__(self, key: str, val: str) -> None:
         raise ValueError("non-mutable Settings() class")
 
-    def __delitem__(self, key):
-        # type: (str) -> None
+    def __delitem__(self, key: str) -> None:
         raise ValueError("non-mutable Settings() class")
 
     @property
-    def name(self):
-        # type: () -> str
+    def name(self) -> str:
         return self._name
 
 
 class CommandLineSettings(Settings):
-    def __getitem__(self, key):
-        # type: (str) -> str
+    def __getitem__(self, key: str) -> str:
         return self._dict[key]
 
-    def __len__(self):
-        # type: () -> int
+    def __len__(self) -> int:
         return len(self._dict)
 
-    def __iter__(self):
-        # type: () -> Iterator[str]
+    def __iter__(self) -> T.Iterator[str]:
         yield from self._dict
 
-    def __setitem__(self, key, val):
-        # type: (str, str) -> None
+    def __setitem__(self, key: str, val: str) -> None:
         self._dict[key] = val
 
-    def __delitem__(self, key):
-        # type: (str) -> None
+    def __delitem__(self, key: str) -> None:
         del self._dict[key]
 
-    def __init__(self):
-        # type: () -> None
+    def __init__(self) -> None:
         super().__init__("[command line]")
-        self._dict = {}  # type: Dict[str, str]
+        self._dict:T.Dict[str, str] = {}
 
 
 class EnvVarSettings(Settings):
     _prefix = "FINDX_"
 
-    def __getitem__(self, key):
-        # type: (str) -> str
+    def __getitem__(self, key: str) -> str:
         env_var = self._prefix + key.upper()
         return os.environ[env_var]
 
-    def __len__(self):
-        # type: () -> int
+    def __len__(self) -> int:
         return len(list(self.__iter__()))
 
-    def __iter__(self):
-        # type: () -> Iterator[str]
+    def __iter__(self) -> T.Iterator[str]:
         for var in os.environ:
             if var.startswith(self._prefix):
                 yield var[len(self._prefix) :].lower()
 
-    def __init__(self):
-        # type: () -> None
+    def __init__(self) -> None:
         super().__init__("[Environment]")
 
 
 class TextSettings(Settings):
-    def __getitem__(self, key):
-        # type: (str) -> str
+    def __getitem__(self, key: str) -> str:
         return self._dict[key]
 
-    def __len__(self):
-        # type: () -> int
+    def __len__(self) -> int:
         return len(self._dict)
 
-    def __iter__(self):
-        # type: () -> Iterator[str]
+    def __iter__(self) -> T.Iterator[str]:
         yield from self._dict
 
-    def __init__(self, name):
-        # type: (str) -> None
+    def __init__(self, name: str) -> None:
         super().__init__(name)
-        self._dict = {}  # type: Dict[str, str]
+        self._dict: T.Dict[str, str] = {}
 
-    def set_text(self, text):
-        # type: (str) -> None
+    def set_text(self, text: str) -> None:
         for line in joined_lines(text.splitlines()):
             leading_whitespace, rest = split_leading_whitespace(line)
             if line.startswith("#") or not line:
@@ -894,8 +805,7 @@ class TextSettings(Settings):
 
 
 class FileSettings(TextSettings):
-    def __init__(self, path):
-        # type: (str) -> None
+    def __init__(self, path: str) -> None:
         super().__init__("config file %s" % repr(path))
         expanded_path = os.path.expanduser(path)
         if os.path.exists(expanded_path):
@@ -904,19 +814,17 @@ class FileSettings(TextSettings):
 
 
 class Config:
-    def __init__(self, valid_vars):
-        # type: (List[str]) -> None
+    def __init__(self, valid_vars: T.List[str]) -> None:
         self._command_line_settings = CommandLineSettings()
         self._env_var_settings = EnvVarSettings()
         self._default_settings = TextSettings("[Default Settings]")
         self._default_settings.set_text(DEFAULT_CONFIG_TEXT)
-        self._all_settings_files = {}  # type: Dict[str, FileSettings]
-        self._config_files = []  # type: List[str]
+        self._all_settings_files: T.Dict[str, FileSettings] = {}
+        self._config_files: T.List[str] = []
         self._config_files_stable = False
         self._valid_vars = valid_vars
 
-    def _sources(self):
-        # type: () -> Iterator[Settings]
+    def _sources(self) -> T.Iterator[Settings]:
         yield self._command_line_settings
         yield self._env_var_settings
         if not self._config_files_stable:
@@ -932,8 +840,7 @@ class Config:
             yield self._settings_file(config_file)
         yield self._default_settings
 
-    def _settings_file(self, path):
-        # type: (str) -> FileSettings
+    def _settings_file(self, path: str) -> FileSettings:
         if path not in self._all_settings_files:
             settings = FileSettings(path)
             for var, raw_value in settings.items():
@@ -946,8 +853,9 @@ class Config:
             self._all_settings_files[path] = settings
         return self._all_settings_files[path]
 
-    def _merge_values(self, parent_value, op, value):
-        # type: (List[str], str, List[str]) -> List[str]
+    def _merge_values(
+        self, parent_value: T.List[str], op: str, value: T.List[str]
+    ) -> T.List[str]:
         if op == "+":
             merged_value = parent_value + value
         elif op == "^":
@@ -961,8 +869,13 @@ class Config:
             raise FindxInternalError("Invalid op %s" % repr(op))
         return merged_value
 
-    def _get(self, var, sources, op, value):
-        # type: (str, Iterable[Settings], str, List[str]) -> List[str]
+    def _get(
+        self,
+        var: str,
+        sources: T.Iterable[Settings],
+        op: str,
+        value: T.List[str],
+    ) -> T.List[str]:
         if op == "=":
             return value[:]
         for source in sources:
@@ -977,12 +890,12 @@ class Config:
             parent_value = []
         return self._merge_values(parent_value, op, value)
 
-    def get(self, var, op="+", value=[]):
-        # type: (str, str, List[str]) -> List[str]
+    def get(
+        self, var: str, op: str = "+", value: T.List[str] = []
+    ) -> T.List[str]:
         return self._get(var, self._sources(), op, value)
 
-    def set(self, var, op, value):
-        # type: (str, str, List[str]) -> None
+    def set(self, var: str, op: str, value: T.List[str]) -> None:
         list_value = self.get(var, op, value)
         self._command_line_settings[var] = quoted_join(list_value)
         if var == "config_files":
@@ -1093,65 +1006,58 @@ class Findx:
 
     META_PAIRS = "[]{}"
 
-    def __init__(self):
-        # type: () -> None
-        self.pre_path_options = []  # type: List[str]
-        self.post_path_options = []  # type: List[str]
-        self.roots = []  # type: List[str]
-        self.excludes = []  # type: List[str]
-        self.includes = []  # type: List[str]
+    def __init__(self) -> None:
+        self.pre_path_options: T.List[str] = []
+        self.post_path_options: T.List[str] = []
+        self.roots: T.List[str] = []
+        self.excludes: T.List[str] = []
+        self.includes: T.List[str] = []
         self.saw_action = False
         self.saw_print = False
 
-        self.expression = []  # type: List[str]
+        self.expression: T.List[str] = []
         self.in_xargs = False
         self.locked_in_xargs = False
         self.need_xarg = False
-        self.xargs = []  # type: List[str]
-        self.find_pipe_args = []  # type: List[str]
-        self.xargs_pipe_args = []  # type: List[str]
+        self.xargs: T.List[str] = []
+        self.find_pipe_args: T.List[str] = []
+        self.xargs_pipe_args: T.List[str] = []
         self.show = False
         self.show_help = False
         self.show_version = False
         self.show_readme = False
         self.shown = False
-        self.pipe_status = None  # type: Optional[Tuple[int, ...]]
+        self.pipe_status: T.Optional[T.Tuple[int, ...]] = None
         self.config = Config(VALID_VARS)
         self.stdxd = False
         self.stdxf = False
 
-    def get_var(self, var):
-        # type: (str) -> List[str]
+    def get_var(self, var: str) -> T.List[str]:
         return self.config.get(var)
 
-    def get_non_empty_var(self, var):
-        # type: (str) -> List[str]
+    def get_non_empty_var(self, var: str) -> T.List[str]:
         value = self.get_var(var)
         if not value:
             raise InvalidEmptyConfigVarError(var)
         return value
 
-    def get_scalar_var(self, var):
-        # type: (str) -> str
+    def get_scalar_var(self, var: str) -> str:
         value = self.get_var(var)
         if len(value) != 1:
             raise InvalidScalarConfigVarError(var)
         return value[0]
 
-    def get_choice_var(self, var, choices):
-        # type: (str, List[str]) -> str
+    def get_choice_var(self, var: str, choices: T.List[str]) -> str:
         value = self.get_scalar_var(var)
         if value not in choices:
             raise InvalidChoiceConfigVarError(var, choices)
         return value
 
-    def expand_path_var(self, path_var):
-        # type: (str) -> List[str]
+    def expand_path_var(self, path_var: str) -> T.List[str]:
         locations = self.get_non_empty_var(path_var)
         return [os.path.expanduser(p) for p in locations]
 
-    def resolve_path_var(self, path_var):
-        # type: (str) -> str
+    def resolve_path_var(self, path_var: str) -> str:
         locations = self.expand_path_var(path_var)
         for tool in locations:
             if distutils.spawn.find_executable(tool):
@@ -1159,8 +1065,7 @@ class Findx:
         # Not found; fall back to first configured location.
         return locations[0]
 
-    def run_args(self, args):
-        # type: (List[str]) -> Tuple[int, bytes]
+    def run_args(self, args: T.List[str]) -> T.Tuple[int, bytes]:
         with open(os.devnull) as stdin:
             try:
                 p = Popen(args, stdin=stdin, stdout=PIPE, stderr=STDOUT)
@@ -1171,8 +1076,7 @@ class Findx:
                 output = b""
             return retcode, output
 
-    def probe_gnu_style(self, tool):
-        # type: (str) -> str
+    def probe_gnu_style(self, tool: str) -> str:
         retcode, output = self.run_args([tool, "--version"])
         if retcode == 0 and b"GNU" in output:
             style = "gnu"
@@ -1180,32 +1084,28 @@ class Findx:
             style = "bsd"
         return style
 
-    def resolve_xargs_style(self, xargs_tool):
-        # type: (str) -> str
+    def resolve_xargs_style(self, xargs_tool: str) -> str:
         choices = ["probe", "gnu", "bsd", "posix"]
         style = self.get_choice_var("xargs_style", choices)
         if style == "probe":
             style = self.probe_gnu_style(xargs_tool)
         return style
 
-    def resolve_find_style(self, find_tool):
-        # type: (str) -> str
+    def resolve_find_style(self, find_tool: str) -> str:
         choices = ["probe", "gnu", "bsd", "posix"]
         style = self.get_choice_var("find_style", choices)
         if style == "probe":
             style = self.probe_gnu_style(find_tool)
         return style
 
-    def resolve_grep_style(self, grep_tool):
-        # type: (str) -> str
+    def resolve_grep_style(self, grep_tool: str) -> str:
         choices = ["probe", "gnu", "bsd", "posix"]
         style = self.get_choice_var("grep_style", choices)
         if style == "probe":
             style = self.probe_gnu_style(grep_tool)
         return style
 
-    def has_meta(self, s):
-        # type: (str) -> bool
+    def has_meta(self, s: str) -> bool:
         for c in self.META_CHARS:
             if c in s:
                 return True
@@ -1216,49 +1116,47 @@ class Findx:
                     return True
         return False
 
-    def matches_root(self, s):
-        # type: (str) -> bool
+    def matches_root(self, s: str) -> bool:
         return (
             s not in self.RESERVED_WORDS
             and not s.startswith("-")
             and (not self.has_meta(s) or os.path.exists(s))
         )
 
-    def push_arg(self, arg):
-        # type: (str) -> None
+    def push_arg(self, arg: str) -> None:
         self.args.insert(0, arg)
 
-    def push_arg_list(self, arg_list):
-        # type: (List[str]) -> None
+    def push_arg_list(self, arg_list: T.List[str]) -> None:
         self.args[:0] = arg_list
 
-    def peek_arg(self):
-        # type: () -> str
+    def peek_arg(self) -> str:
         try:
             return self.args[0]
         except IndexError:
             raise MissingArgumentError()
 
-    def pop_arg(self):
-        # type: () -> str
+    def pop_arg(self) -> str:
         try:
             return self.args.pop(0)
         except IndexError:
             raise MissingArgumentError()
 
-    def pop_expected_arg(self, expected_arg):
-        # type: (str) -> str
+    def pop_expected_arg(self, expected_arg: str) -> str:
         arg = self.pop_arg()
         if arg != expected_arg:
             raise UnexpectedArgumentError(arg, expected_arg)
         return arg
 
-    def launder_char_class(self, s):
-        # type: (str) -> str
+    def launder_char_class(self, s: str) -> str:
         return re.sub(r"\[[^]]*?\]", lambda m: "\x00" * len(m.group(0)), s)
 
-    def find_multi(self, s, hit_list, start=0, end=None):
-        # type: (str, List[str], int, Optional[int]) -> Tuple[int, str]
+    def find_multi(
+        self,
+        s: str,
+        hit_list: T.List[str],
+        start: int = 0,
+        end: T.Optional[int] = None,
+    ) -> T.Tuple[int, str]:
         """Return (hit_pos, hit_string) for first hit_string in hit_list found.
 
         Returns (-1, '') if no match.
@@ -1275,8 +1173,7 @@ class Findx:
                 hit_string = h
         return hit_pos, hit_string
 
-    def find_braced_range(self, s, start=0):
-        # type: (str, int) -> Tuple[int, int]
+    def find_braced_range(self, s: str, start: int = 0) -> T.Tuple[int, int]:
         """Return range (start, end) inside outermost braces."""
 
         clean_str = self.launder_char_class(s)
@@ -1296,8 +1193,7 @@ class Findx:
                     end += 1
         return (-1, -1)
 
-    def launder_char_class_and_braces(self, s):
-        # type: (str) -> str
+    def launder_char_class_and_braces(self, s: str) -> str:
         s = self.launder_char_class(s)
         start = 0
         while True:
@@ -1309,8 +1205,7 @@ class Findx:
                 break
         return s
 
-    def find_cut_points(self, s):
-        # type: (str) -> List[int]
+    def find_cut_points(self, s: str) -> T.List[int]:
         """
         Scan for ',' or '|' outside of all brackets and braces,
         return list of indices of all such commas and pipes.
@@ -1328,8 +1223,7 @@ class Findx:
                 break
         return cut_points
 
-    def split_glob_outside_braces(self, glob):
-        # type: (str) -> List[str]
+    def split_glob_outside_braces(self, glob: str) -> T.List[str]:
         cut_points = self.find_cut_points(glob)
         pieces = []
         start = 0
@@ -1338,8 +1232,7 @@ class Findx:
             start = p + 1
         return pieces
 
-    def split_glob(self, glob):
-        # type: (str) -> List[str]
+    def split_glob(self, glob: str) -> T.List[str]:
         output_hopper = []
         input_hopper = self.split_glob_outside_braces(glob)
         while input_hopper:
@@ -1361,8 +1254,9 @@ class Findx:
             output_hopper.append("")
         return output_hopper
 
-    def distribute_option(self, option, params):
-        # type: (str, List[str]) -> List[str]
+    def distribute_option(
+        self, option: str, params: T.List[str]
+    ) -> T.List[str]:
         if len(params) <= 1:
             option_list = [option] + params
         else:
@@ -1374,12 +1268,10 @@ class Findx:
             option_list = ["("] + option_list + [")"]
         return option_list
 
-    def expand_test_with_glob(self, test, glob):
-        # type: (str, str) -> List[str]
+    def expand_test_with_glob(self, test: str, glob: str) -> T.List[str]:
         return self.distribute_option(test, self.split_glob(glob))
 
-    def get_option_list(self):
-        # type: () -> List[str]
+    def get_option_list(self) -> T.List[str]:
         option = self.pop_arg()
         option_list = [option]
         if option in self.OPTIONS_1:
@@ -1396,8 +1288,7 @@ class Findx:
             raise InvalidOptionError(option)
         return option_list
 
-    def get_optional_term(self):
-        # type: () -> List[str]
+    def get_optional_term(self) -> T.List[str]:
         arg = self.peek_arg()
         if arg == "(":
             term = [self.pop_arg()]
@@ -1426,8 +1317,7 @@ class Findx:
                     self.saw_print = True
         return term
 
-    def get_term(self):
-        # type: () -> List[str]
+    def get_term(self) -> T.List[str]:
         term = self.get_optional_term()
         if not term:
             if self.args:
@@ -1436,8 +1326,7 @@ class Findx:
                 raise MissingArgumentError()
         return term
 
-    def get_expression(self):
-        # type: () -> List[str]
+    def get_expression(self) -> T.List[str]:
         expr = self.get_term()
         while self.args:
             if self.peek_arg() in self.BINARY_OPERATORS:
@@ -1451,29 +1340,24 @@ class Findx:
                     break
         return expr
 
-    def or_extend(self, base, extension):
-        # type: (List[str], List[str]) -> None
+    def or_extend(self, base: T.List[str], extension: T.List[str]) -> None:
         if base and extension:
             base.append("-o")
         base.extend(extension)
 
-    def parse_include_exclude(self, include_exclude):
-        # type: (List[str]) -> None
+    def parse_include_exclude(self, include_exclude: T.List[str]) -> None:
         self.or_extend(include_exclude, self.get_term())
 
-    def switch_to_var(self, switch):
-        # type: (str) -> str
+    def switch_to_var(self, switch: str) -> str:
         return switch.lstrip("-").replace("-", "_")
 
-    def _make_setting(self, var, value):
-        # type: (str, List[str]) -> str
+    def _make_setting(self, var: str, value: T.List[str]) -> str:
         quoted_value = quoted_join(value)
         if quoted_value:
             quoted_value = " " + quoted_value
         return "{} ={}".format(var, quoted_value)
 
-    def parse_findx_arg_show(self, arg):
-        # type: (str) -> bool
+    def parse_findx_arg_show(self, arg: str) -> bool:
         parsed = True
         if arg in ["-help", "--help"]:
             self.show_help = True
@@ -1498,8 +1382,7 @@ class Findx:
             parsed = False
         return parsed
 
-    def parse_findx_arg_abbrev(self, arg):
-        # type: (str) -> bool
+    def parse_findx_arg_abbrev(self, arg: str) -> bool:
         parsed = True
         if arg == "-stdx":
             self.push_arg_list(["-stdxd", "-stdxf"])
@@ -1513,8 +1396,7 @@ class Findx:
             parsed = False
         return parsed
 
-    def parse_findx_arg_exclude(self, arg):
-        # type: (str) -> bool
+    def parse_findx_arg_exclude(self, arg: str) -> bool:
         parsed = True
         if arg == "-stdxd":
             self.stdxd = True
@@ -1535,8 +1417,7 @@ class Findx:
             parsed = False
         return parsed
 
-    def parse_findx_arg(self, arg):
-        # type: (str) -> None
+    def parse_findx_arg(self, arg: str) -> None:
         if self.parse_findx_arg_show(arg):
             pass
         elif self.parse_findx_arg_abbrev(arg):
@@ -1572,8 +1453,7 @@ class Findx:
             self.push_arg(arg)
             self.expression.extend(self.get_expression())
 
-    def iname_globs(self, globs):
-        # type: (List[str]) -> List[str]
+    def iname_globs(self, globs: T.List[str]) -> T.List[str]:
         expr = []
         for g in globs:
             expr.extend(self.split_glob(g))
@@ -1581,8 +1461,7 @@ class Findx:
             expr = self.distribute_option("-iname", expr)
         return expr
 
-    def parse_findx_args(self, args):
-        # type: (List[str]) -> None
+    def parse_findx_args(self, args: T.List[str]) -> None:
         self.args = list(args)
         while self.args:
             arg = self.pop_arg()
@@ -1614,8 +1493,7 @@ class Findx:
         if not self.roots:
             self.roots.append(".")
 
-    def parse_command_line(self, args):
-        # type: (List[str]) -> None
+    def parse_command_line(self, args: T.List[str]) -> None:
         self.parse_findx_args(args)
         find_tool = self.resolve_path_var("find_path")
         find_style = self.resolve_find_style(find_tool)
@@ -1627,7 +1505,7 @@ class Findx:
             + self.post_path_options
         )
 
-        std_excludes = []  # type: List[str]
+        std_excludes: T.List[str] = []
         if self.stdxd:
             expr = self.iname_globs(self.get_var("stdxd"))
             if expr:
@@ -1667,8 +1545,7 @@ class Findx:
         if need_print:
             self.find_pipe_args.append(print_action)
 
-    def run(self):
-        # type: () -> int
+    def run(self) -> int:
         self.pipe_status = None
         exit_status = 0
         if self.show_help:
@@ -1715,13 +1592,11 @@ class Findx:
                 exit_status = merge_find_xargs_status(find_status, 0)
         return exit_status
 
-    def help(self):
-        # type: () -> None
+    def help(self) -> None:
         print(HELP_TEXT)
 
 
-def main():
-    # type: () -> int
+def main() -> int:
     try:
         f = Findx()
         try:
@@ -1742,14 +1617,12 @@ def main():
     return exit_status
 
 
-def ffx():
-    # type: () -> int
+def ffx() -> int:
     sys.argv.insert(1, "-ffx")
     return main()
 
 
-def ffg():
-    # type: () -> int
+def ffg() -> int:
     sys.argv.insert(1, "-ffg")
     return main()
 
