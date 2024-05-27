@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import collections.abc
 import importlib.metadata
 import os
 import re
@@ -734,7 +733,7 @@ def readme() -> None:
     print(desc)
 
 
-class Settings(collections.abc.MutableMapping):
+class Settings(T.MutableMapping[str, str]):
     def __init__(self, name: str) -> None:
         self._name = name
 
@@ -1098,6 +1097,8 @@ class Findx:
                 p = Popen(args, stdin=stdin, stdout=PIPE, stderr=STDOUT)
                 output = p.communicate()[0]
                 retcode = p.poll()
+                if retcode is None:
+                    retcode = 1
             except OSError:
                 retcode = 1
                 output = b""
