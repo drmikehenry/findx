@@ -1,13 +1,10 @@
 #!/usr/bin/env python
-# coding=utf-8
 
-from __future__ import print_function
-from __future__ import unicode_literals
 
 try:
     from collections.abc import MutableMapping
 except ImportError:
-    from collections import MutableMapping
+    from collections.abc import MutableMapping
 import distutils.spawn
 import os
 import re
@@ -599,7 +596,7 @@ class FindxRuntimeError(FindxError):
 class MissingArgumentError(FindxSyntaxError):
     def __init__(self):
         # type: () -> None
-        super(MissingArgumentError, self).__init__(
+        super().__init__(
             "Missing command-line argument"
         )
 
@@ -607,7 +604,7 @@ class MissingArgumentError(FindxSyntaxError):
 class UnexpectedArgumentError(FindxSyntaxError):
     def __init__(self, arg, expected_arg):
         # type: (str, str) -> None
-        super(UnexpectedArgumentError, self).__init__(
+        super().__init__(
             "Got argument %s, expected %s"
             % (strepr(arg), strepr(expected_arg))
         )
@@ -616,13 +613,13 @@ class UnexpectedArgumentError(FindxSyntaxError):
 class MissingXargError(FindxSyntaxError):
     def __init__(self):
         # type: () -> None
-        super(MissingXargError, self).__init__("Missing required xarg")
+        super().__init__("Missing required xarg")
 
 
 class InvalidOptionError(FindxSyntaxError):
     def __init__(self, bad_option):
         # type: (str) -> None
-        super(InvalidOptionError, self).__init__(
+        super().__init__(
             "Invalid command-line option %s" % strepr(bad_option)
         )
 
@@ -630,7 +627,7 @@ class InvalidOptionError(FindxSyntaxError):
 class PrintWithXargsError(FindxSyntaxError):
     def __init__(self):
         # type: () -> None
-        super(PrintWithXargsError, self).__init__(
+        super().__init__(
             "Cannot mix '-print' with XARGS"
         )
 
@@ -638,31 +635,31 @@ class PrintWithXargsError(FindxSyntaxError):
 class InvalidConfigLineError(FindxSyntaxError):
     def __init__(self, source, line, reason):
         # type: (str, str, str) -> None
-        super(InvalidConfigLineError, self).__init__(
-            "In %s for line %s: %s" % (source, strepr(line), reason)
+        super().__init__(
+            "In {} for line {}: {}".format(source, strepr(line), reason)
         )
 
 
 class InvalidConfigVarError(FindxSyntaxError):
     def __init__(self, source, var):
         # type: (str, str) -> None
-        super(InvalidConfigVarError, self).__init__(
-            "In %s variable %s is invalid" % (source, strepr(var))
+        super().__init__(
+            "In {} variable {} is invalid".format(source, strepr(var))
         )
 
 
 class InvalidConfigValueError(FindxSyntaxError):
     def __init__(self, source, var, reason):
         # type: (str, str, Exception) -> None
-        super(InvalidConfigValueError, self).__init__(
-            "In %s for variable %s: %s" % (source, strepr(var), reason)
+        super().__init__(
+            "In {} for variable {}: {}".format(source, strepr(var), reason)
         )
 
 
 class InvalidEmptyConfigVarError(FindxSyntaxError):
     def __init__(self, var):
         # type: (str) -> None
-        super(InvalidEmptyConfigVarError, self).__init__(
+        super().__init__(
             "Variable %s must not be empty" % (strepr(var))
         )
 
@@ -670,7 +667,7 @@ class InvalidEmptyConfigVarError(FindxSyntaxError):
 class InvalidScalarConfigVarError(FindxSyntaxError):
     def __init__(self, var):
         # type: (str) -> None
-        super(InvalidScalarConfigVarError, self).__init__(
+        super().__init__(
             "Variable %s must be a single value" % (strepr(var))
         )
 
@@ -678,7 +675,7 @@ class InvalidScalarConfigVarError(FindxSyntaxError):
 class InvalidChoiceConfigVarError(FindxSyntaxError):
     def __init__(self, var, choices):
         # type: (str, List[str]) -> None
-        super(InvalidChoiceConfigVarError, self).__init__(
+        super().__init__(
             "Variable %s must be one of: %s"
             % (strepr(var), ", ".join(choices))
         )
@@ -687,7 +684,7 @@ class InvalidChoiceConfigVarError(FindxSyntaxError):
 class ConfigFilesUnstableError(FindxSyntaxError):
     def __init__(self):
         # type: () -> None
-        super(ConfigFilesUnstableError, self).__init__(
+        super().__init__(
             "'config_files' setting does not stabilize"
         )
 
@@ -695,7 +692,7 @@ class ConfigFilesUnstableError(FindxSyntaxError):
 class InvalidRootError(FindxRuntimeError):
     def __init__(self, root):
         # type: (str) -> None
-        super(InvalidRootError, self).__init__(
+        super().__init__(
             "Invalid root path %s" % strepr(root)
         )
 
@@ -703,7 +700,7 @@ class InvalidRootError(FindxRuntimeError):
 class ExecutableNotFoundError(FindxRuntimeError):
     def __init__(self, executable):
         # type: (str) -> None
-        super(ExecutableNotFoundError, self).__init__(
+        super().__init__(
             "Executable %s not found" % strepr(executable)
         )
 
@@ -816,8 +813,7 @@ class CommandLineSettings(Settings):
 
     def __iter__(self):
         # type: () -> Iterator[str]
-        for var in self._dict:
-            yield var
+        yield from self._dict
 
     def __setitem__(self, key, val):
         # type: (str, str) -> None
@@ -829,7 +825,7 @@ class CommandLineSettings(Settings):
 
     def __init__(self):
         # type: () -> None
-        super(CommandLineSettings, self).__init__("[command line]")
+        super().__init__("[command line]")
         self._dict = {}  # type: Dict[str, str]
 
 
@@ -853,7 +849,7 @@ class EnvVarSettings(Settings):
 
     def __init__(self):
         # type: () -> None
-        super(EnvVarSettings, self).__init__("[Environment]")
+        super().__init__("[Environment]")
 
 
 class TextSettings(Settings):
@@ -867,12 +863,11 @@ class TextSettings(Settings):
 
     def __iter__(self):
         # type: () -> Iterator[str]
-        for var in self._dict:
-            yield var
+        yield from self._dict
 
     def __init__(self, name):
         # type: (str) -> None
-        super(TextSettings, self).__init__(name)
+        super().__init__(name)
         self._dict = {}  # type: Dict[str, str]
 
     def set_text(self, text):
@@ -907,14 +902,14 @@ class TextSettings(Settings):
 class FileSettings(TextSettings):
     def __init__(self, path):
         # type: (str) -> None
-        super(FileSettings, self).__init__("config file %s" % strepr(path))
+        super().__init__("config file %s" % strepr(path))
         expanded_path = os.path.expanduser(path)
         if os.path.exists(expanded_path):
-            with open(expanded_path, "r") as f:
+            with open(expanded_path) as f:
                 self.set_text(f.read())
 
 
-class Config(object):
+class Config:
     def __init__(self, valid_vars):
         # type: (List[str]) -> None
         self._command_line_settings = CommandLineSettings()
@@ -1000,7 +995,7 @@ class Config(object):
             self._config_files_stable = False
 
 
-class Findx(object):
+class Findx:
     OPTIONS_0 = []
     OPTIONS_1 = []
     OPTIONS_2 = []
@@ -1075,7 +1070,7 @@ class Findx(object):
     ref_types = "aBcmt"
     for x in ref_types:
         for y in ref_types:
-            TESTS_1.append("-newer%s%s" % (x, y))
+            TESTS_1.append("-newer{}{}".format(x, y))
     OPTIONS_1.extend(TESTS_1)
 
     TESTS_WITH_GLOB = """
@@ -1481,7 +1476,7 @@ class Findx(object):
         quoted_value = quoted_join(value)
         if quoted_value:
             quoted_value = " " + quoted_value
-        return "%s =%s" % (var, quoted_value)
+        return "{} ={}".format(var, quoted_value)
 
     def parse_findx_arg_show(self, arg):
         # type: (str) -> bool
