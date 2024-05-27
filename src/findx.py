@@ -372,7 +372,7 @@ HELP_TEXT = HELP_TEXT.replace("__DEFAULT_CONFIG_TEXT__", DEFAULT_CONFIG_TEXT)
 
 
 def warn(message: str) -> None:
-    print("%s: %s" % (project_name, message), file=sys.stderr)
+    print(f"{project_name}: {message}", file=sys.stderr)
 
 
 def single_quoted(s: str) -> str:
@@ -563,7 +563,7 @@ class MissingArgumentError(FindxSyntaxError):
 class UnexpectedArgumentError(FindxSyntaxError):
     def __init__(self, arg: str, expected_arg: str) -> None:
         super().__init__(
-            "Got argument %s, expected %s" % (repr(arg), repr(expected_arg))
+            f"Got argument {repr(arg)}, expected {repr(expected_arg)}"
         )
 
 
@@ -584,23 +584,17 @@ class PrintWithXargsError(FindxSyntaxError):
 
 class InvalidConfigLineError(FindxSyntaxError):
     def __init__(self, source: str, line: str, reason: str) -> None:
-        super().__init__(
-            "In {} for line {}: {}".format(source, repr(line), reason)
-        )
+        super().__init__(f"In {source} for line {repr(line)}: {reason}")
 
 
 class InvalidConfigVarError(FindxSyntaxError):
     def __init__(self, source: str, var: str) -> None:
-        super().__init__(
-            "In {} variable {} is invalid".format(source, repr(var))
-        )
+        super().__init__(f"In {source} variable {repr(var)} is invalid")
 
 
 class InvalidConfigValueError(FindxSyntaxError):
     def __init__(self, source: str, var: str, reason: Exception) -> None:
-        super().__init__(
-            "In {} for variable {}: {}".format(source, repr(var), reason)
-        )
+        super().__init__(f"In {source} for variable {repr(var)}: {reason}")
 
 
 class InvalidEmptyConfigVarError(FindxSyntaxError):
@@ -616,7 +610,9 @@ class InvalidScalarConfigVarError(FindxSyntaxError):
 class InvalidChoiceConfigVarError(FindxSyntaxError):
     def __init__(self, var: str, choices: T.List[str]) -> None:
         super().__init__(
-            "Variable %s must be one of: %s" % (repr(var), ", ".join(choices))
+            "Variable {} must be one of: {}".format(
+                repr(var), ", ".join(choices)
+            )
         )
 
 
@@ -1004,7 +1000,7 @@ class Findx:
     ref_types = "aBcmt"
     for x in ref_types:
         for y in ref_types:
-            TESTS_1.append("-newer{}{}".format(x, y))
+            TESTS_1.append(f"-newer{x}{y}")
     OPTIONS_1.extend(TESTS_1)
 
     TESTS_WITH_GLOB = """
@@ -1384,7 +1380,7 @@ class Findx:
         quoted_value = quoted_join(value)
         if quoted_value:
             quoted_value = " " + quoted_value
-        return "{} ={}".format(var, quoted_value)
+        return f"{var} ={quoted_value}"
 
     def parse_findx_arg_show(self, arg: str) -> bool:
         parsed = True
