@@ -10,14 +10,17 @@ jobs:
     runs-on: "${{ matrix.os }}"
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: ./.github/actions/setup-poetry-nox
+      - name: Setup Uv with Python and Nox
+        uses: ./.github/actions/setup-uv-nox
 
       - name: Build executables
-        run: poetry run nox -s build
+        run: uv run nox -s build
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: "dist-${{ matrix.os }}"
           path: dist/
@@ -26,24 +29,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: docker/setup-buildx-action@v3
+      - name: Setup Uv with Python and Nox
+        uses: ./.github/actions/setup-uv-nox
 
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: "Dockerfile"
-          tags: findx_build:latest
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          push: false
+      - name: Build executables
+        run: uv run nox -s build_linux
 
-      - name: Run docker to build for linux
-        uses: ./.github/actions/run-docker/
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: dist-ubuntu-latest
-          path: "${{ github.workspace }}/dist/"
+          path: dist/

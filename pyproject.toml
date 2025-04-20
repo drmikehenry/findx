@@ -1,4 +1,4 @@
-[tool.poetry]
+[project]
 name = "findx"
 version = "0.12.0"
 include = [
@@ -7,7 +7,6 @@ include = [
   { path = "README.rst", format="sdist" },
   { path = "maintainer.rst", format="sdist" },
   { path = "noxfile.py", format="sdist" },
-  { path = "poetry.lock", format="sdist" },
   { path = "requirements.txt", format="sdist" },
   { path = "findx-wrapper.py", format="sdist" },
   { path = "ffx-wrapper.py", format="sdist" },
@@ -15,7 +14,9 @@ include = [
 ]
 description = "``findx``, an extended ``find`` command."
 keywords = ["extended", "find", "file", "search"]
-authors = ["Michael Henry <drmikehenry@drmikehenry.com>"]
+authors = [
+    { name = "Michael Henry", email = "drmikehenry@drmikehenry.com" }
+]
 license = "MIT"
 readme = "README.rst"
 repository = "https://github.com/drmikehenry/findx"
@@ -31,67 +32,54 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     # Include this classifier to prevent accidently publishing private code to PyPI.
     #   https://pypi.org/classifiers/
     # "Private :: Do Not Upload",
 ]
+requires-python = ">=3.8"
 
-[tool.poetry.dependencies]
-# Some packages, such as scipy, constrain their upper bound of Python versions
-# they support. Without also constraining the upper bound here, Poetry will not
-# select those versions and will result in an old version being resolved/locked.
-python = "^3.8, <3.13"
+[dependency-groups]
+nox = [
+    "nox",
+]
 
-[tool.poetry.group.nox.dependencies]
-nox-poetry = "*"
+install = [
+    "pyinstaller>=6.3",
+]
 
-[tool.poetry.group.install.dependencies]
-pyinstaller = "^6.3"
-twine = "*"
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-gitignore",
+]
 
-# TODO: `twine` has a requirement for `docutils`.  For some reason, specifying
-# only `twine` leads to this error:
-#   `Package docutils (0.21.post1) not found`
-# Explicitly choosing `0.20.0` is a work-around for this issue.
-# See <https://github.com/pypa/twine/issues/1082> for additional details.
-docutils = "0.20.1"
+type_check = [
+    "mypy",
+    # As of mypy 0.900, mypy no longer bundles the stubs for third-party
+    # libraries that reside in the typeshed project. Add these "types-" packages
+    # here if you depend on them (e.g. `types-requests`).
+    # See: http://mypy-lang.blogspot.com/2021/06/mypy-0900-released.html
+    #      https://github.com/python/typeshed/tree/main/stubs
+    "types-toml",
+    "types-setuptools",
+]
 
-[tool.poetry.group.test.dependencies]
-pytest = "*"
-pytest-cov = "*"
-pytest-gitignore = "*"
+lint = [
+  "ruff",
+]
 
-[tool.poetry.group.type_check.dependencies]
-mypy = "*"
-# As of mypy 0.900, mypy no longer bundles the stubs for third-party libraries
-# that reside in the typeshed project. Add these "types-" packages here if you
-# depend on them (e.g. `types-requests`).
-# See: http://mypy-lang.blogspot.com/2021/06/mypy-0900-released.html
-#      https://github.com/python/typeshed/tree/main/stubs
-types-toml = "*"
-types-setuptools = "*"
+[tool.uv]
+default-groups = "all"
 
-[tool.poetry.group.lint.dependencies]
-ruff = "*"
-
-[tool.poetry.scripts]
+[project.scripts]
 findx = "findx:main"
 ffx = "findx:ffx"
 ffg = "findx:ffg"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-##############################################################################
-# Source formatting
-
-[tool.black]
-line-length = 79
-target-version = ["py38"]
-
-##############################################################################
-# Style checking
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 79
@@ -118,15 +106,9 @@ inline-quotes = "double"
 [tool.ruff.lint.mccabe]
 max-complexity = 15
 
-##############################################################################
-# Type checking
-
 [tool.mypy]
 strict = true
 ignore_missing_imports = true
-
-##############################################################################
-# Coverage support
 
 [tool.coverage.run]
 branch = true

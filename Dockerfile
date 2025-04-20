@@ -1,37 +1,28 @@
-FROM ubuntu:18.04
+FROM ubuntu:14.04
 
 RUN apt update \
   && apt install -y \
-      python3.8 \
-      libpython3.8 \
-      python3.8-venv \
-      python3-pip \
+      binutils \
+      curl \
   && rm -rf /var/lib/apt/lists/*
 
-ARG FINDX_PIP_VERSION=24.0
-ARG FINDX_PIPX_VERSION=1.5.0
-ARG FINDX_POETRY_VERSION=1.8.3
-ARG FINDX_POETRY_PLUGIN_EXPORT_VERSION=1.7.1
+ARG FINDX_UV_VERSION="0.7.2"
+ARG FINDX_UV_PYTHON_VERSION="3.13"
+ARG FINDX_UV_PACKAGE="uv-x86_64-unknown-linux-musl.tar.gz"
+ARG FINDX_UV_DOWNLOAD_BASE="https://github.com/astral-sh/uv/releases/download"
+ARG FINDX_UV_URL="$FINDX_UV_DOWNLOAD_BASE/$FINDX_UV_VERSION/$FINDX_UV_PACKAGE"
 
-ENV PIPX_HOME=/pipx-lib
-ENV PIPX_BIN_DIR=/usr/bin
+RUN curl -L "$FINDX_UV_URL" -o "/tmp/$FINDX_UV_PACKAGE" \
+  && tar -C /tmp -xf "/tmp/$FINDX_UV_PACKAGE" \
+  && cp /tmp/uv-*/uv* /usr/local/bin \
+  && rm -rf /tmp/uv*
 
-RUN python3.8 -m venv /pipx-venv \
-  && /pipx-venv/bin/pip install "pip==$FINDX_PIP_VERSION" \
-  && /pipx-venv/bin/pip install "pipx==$FINDX_PIPX_VERSION" \
-  && mkdir -p "$PIPX_HOME" \
-  && /pipx-venv/bin/pipx install "pipx==$FINDX_PIPX_VERSION"
+RUN uv python install "$FINDX_UV_PYTHON_VERSION"
 
-RUN pipx install "poetry==$FINDX_POETRY_VERSION" \
-  && pipx inject poetry \
-      "poetry-plugin-export==$FINDX_POETRY_PLUGIN_EXPORT_VERSION"
-
-COPY --chmod=755 entrypoint.sh /entrypoint.sh
-
-# Copy in project dependency specification that don't change often; this
+# Copy in project dependency specifications that don't change often; this
 # speeds up incremental rebuilding of the container.
-COPY pyproject.toml poetry.lock ./
-RUN poetry install
+COPY pyproject.toml uv.lock ./
+RUN uv sync --no-install-package findx
 
 COPY README.rst \
   maintainer.rst \
@@ -39,6 +30,10 @@ COPY README.rst \
   findx-wrapper.py \
   ffx-wrapper.py \
   ffg-wrapper.py \
+  src \
   ./
 
-ENTRYPOINT ["/entrypoint.sh"]
+RUN uv run nox -s build \
+  && cp dist/x86_64-linux/* /usr/local/bin
+
+ENTRYPOINT ["findx", "--version"]

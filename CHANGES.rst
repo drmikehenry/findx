@@ -2,6 +2,14 @@
 History
 *******
 
+Version 0.12.0
+==============
+
+- Convert from Poetry to Uv.
+
+- Use Uv + python-build-standalone to build Linux executables on a Docker Ubuntu
+  14.04 image to support older Linux hosts.
+
 Version 0.11.0
 ==============
 
