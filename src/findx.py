@@ -5,10 +5,10 @@ import os
 import re
 import shutil
 import signal
-from subprocess import PIPE, Popen, STDOUT
 import sys
 import traceback
 import typing as T
+from subprocess import PIPE, Popen, STDOUT
 
 project_name = "findx"
 
@@ -681,7 +681,7 @@ def parse_raw_value(raw_value: str) -> T.Tuple[str, T.List[str]]:
 
 
 # For Python 3.10+.
-# This fails on Python 3.8 and 3.9 for `poetry install` and `pip install`.
+# This fails on Python 3.8 and 3.9 for `pip install`.
 # It works, however, for PyInstaller builds for Python 3.8+.
 def readme_from_importlib() -> str:
     meta = importlib.metadata.metadata(project_name)
@@ -689,7 +689,7 @@ def readme_from_importlib() -> str:
     return text.strip()
 
 
-# Required on Python 3.8 and 3.9 for `poetry install`, `pip install`.
+# Required on Python 3.8 and 3.9 for `pip install`.
 def readme_from_pkg_resources() -> str:
     import email
     import textwrap
