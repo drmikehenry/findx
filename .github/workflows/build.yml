@@ -7,6 +7,10 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
+        nox_session: [build]
+        include:
+          - os: ubuntu-latest
+            nox_session: build_linux
     runs-on: "${{ matrix.os }}"
 
     steps:
@@ -17,29 +21,10 @@ jobs:
         uses: ./.github/actions/setup-uv-nox
 
       - name: Build executables
-        run: uv run nox -s build
+        run: uv run nox -s "${{ matrix.nox_session }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: "dist-${{ matrix.os }}"
-          path: dist/
-
-  build-executable-ubuntu:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Uv with Python and Nox
-        uses: ./.github/actions/setup-uv-nox
-
-      - name: Build executables
-        run: uv run nox -s build_linux
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-ubuntu-latest
           path: dist/
